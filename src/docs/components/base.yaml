@@ -1,0 +1,13 @@
+schemas:
+  ID:
+    type: string
+    format: uuid
+    example: 12fc53f3-2f6f-4c87-a0ae-f99a00c756d4
+
+  Error:
+    type: object
+    required: [error, message]
+    properties:
+      error: { type: string, example: validation_error }
+      message: { type: string }
+      request_id: { type: string }

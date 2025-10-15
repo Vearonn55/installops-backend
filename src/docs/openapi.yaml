@@ -1,0 +1,53 @@
+openapi: 3.1.0
+info:
+  title: InstallOps API
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login: { $ref: './paths/auth.yaml#/paths/~1auth~1login' }
+  /auth/me:    { $ref: './paths/auth.yaml#/paths/~1auth~1me' }
+
+  /installations:                { $ref: './paths/installations.yaml#/paths/~1installations' }
+  /installations/{id}:           { $ref: './paths/installations.yaml#/paths/~1installations~1{id}' }
+  /installations/{id}/items:     { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1items' }
+  /installations/{id}/crew:      { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1crew' }
+  /installations/{id}/status:    { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1status' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # base
+    ID:                { $ref: './components/base.yaml#/schemas/ID' }
+    Error:             { $ref: './components/base.yaml#/schemas/Error' }
+
+    # auth
+    AuthLoginRequest:  { $ref: './components/auth.yaml#/schemas/AuthLoginRequest' }
+    AuthTokenResponse: { $ref: './components/auth.yaml#/schemas/AuthTokenResponse' }
+    AuthMeResponse:    { $ref: './components/auth.yaml#/schemas/AuthMeResponse' }
+
+    # installations (crew stays here for now)
+    InstallStatus:            { $ref: './components/installations.yaml#/schemas/InstallStatus' }
+    Installation:             { $ref: './components/installations.yaml#/schemas/Installation' }
+    InstallationCreate:       { $ref: './components/installations.yaml#/schemas/InstallationCreate' }
+    InstallationItem:         { $ref: './components/installations.yaml#/schemas/InstallationItem' }
+    InstallationItemCreate:   { $ref: './components/installations.yaml#/schemas/InstallationItemCreate' }
+    InstallationList:         { $ref: './components/installations.yaml#/schemas/InstallationList' }
+    CrewAssignment:           { $ref: './components/installations.yaml#/schemas/CrewAssignment' }
+    CrewAssignmentCreate:     { $ref: './components/installations.yaml#/schemas/CrewAssignmentCreate' }
+
+tags:
+  - name: Auth
+    description: Authentication & identity
+  - name: Installations
+    description: Installation management

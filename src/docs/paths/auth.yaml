@@ -1,0 +1,32 @@
+paths:
+  /auth/login:
+    post:
+      summary: Login with email and password
+      tags: [Auth]
+      security: []   # public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/auth.yaml#/schemas/AuthLoginRequest' }
+      responses:
+        '200':
+          description: Token issued
+          content:
+            application/json:
+              schema: { $ref: '../components/auth.yaml#/schemas/AuthTokenResponse' }
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      summary: Current user profile
+      tags: [Auth]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/auth.yaml#/schemas/AuthMeResponse' }
+        '401':
+          description: Unauthorized

@@ -1,0 +1,34 @@
+schemas:
+  AuthLoginRequest:
+    type: object
+    required: [email, password]
+    properties:
+      email:    { type: string, format: email }
+      password: { type: string, format: password }
+
+  AuthTokenResponse:
+    type: object
+    required: [token_type, access_token, user]
+    properties:
+      token_type:   { type: string, example: Bearer }
+      expires_in:   { oneOf: [ { type: string }, { type: integer } ], example: 12h }
+      access_token: { type: string }
+      user:
+        type: object
+        required: [id, email]
+        properties:
+          id:    { $ref: './base.yaml#/schemas/ID' }
+          name:  { type: string }
+          email: { type: string, format: email }
+          role:  { type: string, nullable: true }
+
+  AuthMeResponse:
+    type: object
+    required: [id]
+    properties:
+      id:          { $ref: './base.yaml#/schemas/ID' }
+      role_id:     { $ref: './base.yaml#/schemas/ID' }
+      role:        { type: string, nullable: true }
+      permissions:
+        type: array
+        items: { type: string }
