@@ -1,0 +1,181 @@
+paths:
+  /checklist-templates:
+    get:
+      tags: [Checklists]
+      summary: List templates
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/checklists.yaml#/schemas/ChecklistTemplateList' }
+    post:
+      tags: [Checklists]
+      summary: Create template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/checklists.yaml#/schemas/ChecklistTemplateCreate' }
+      responses:
+        '201': { description: Created }
+
+  /checklist-templates/{id}:
+    get:
+      tags: [Checklists]
+      summary: Get template
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/checklists.yaml#/schemas/ChecklistTemplate' }
+        '404': { description: Not found }
+    patch:
+      tags: [Checklists]
+      summary: Update template
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/checklists.yaml#/schemas/ChecklistTemplateUpdate' }
+      responses:
+        '200': { description: OK }
+        '404': { description: Not found }
+
+  /checklist-templates/{id}/items:
+    get:
+      tags: [Checklists]
+      summary: List template items
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 50 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Checklists]
+      summary: Create template item
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/checklists.yaml#/schemas/ChecklistItemCreate' }
+      responses:
+        '201': { description: Created }
+        '404': { description: Template not found }
+
+  /checklist-items/{itemId}:
+    patch:
+      tags: [Checklists]
+      summary: Update checklist item
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/checklists.yaml#/schemas/ChecklistItemUpdate' }
+      responses:
+        '200': { description: OK }
+        '404': { description: Not found }
+
+  /installations/{id}/checklist-responses:
+    get:
+      tags: [Checklists]
+      summary: List responses for installation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 50 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200': { description: OK }
+        '404': { description: Installation not found }
+    post:
+      tags: [Checklists]
+      summary: Upsert response (by item_id)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_id]
+              properties:
+                item_id:      { $ref: '../components/base.yaml#/schemas/ID' }
+                value:        { type: object, nullable: true, additionalProperties: true }
+                completed_at: { type: string, format: date-time, nullable: true }
+      responses:
+        '201': { description: Created }
+        '200': { description: Updated }
+        '404': { description: Installation or Item not found }
+
+  /checklist-responses/{id}:
+    patch:
+      tags: [Checklists]
+      summary: Update response/value/completed_at
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:        { type: object, nullable: true, additionalProperties: true }
+                completed_at: { type: string, format: date-time, nullable: true }
+      responses:
+        '200': { description: OK }
+        '404': { description: Not found }

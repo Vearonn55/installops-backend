@@ -1,0 +1,24 @@
+schemas:
+  AuditLog:
+    type: object
+    properties:
+      id:         { type: integer, format: int64 }
+      actor_id:   { $ref: './base.yaml#/schemas/ID' }
+      action:     { type: string, maxLength: 120 }
+      entity:     { type: string, maxLength: 120 }
+      entity_id:  { $ref: './base.yaml#/schemas/ID' }
+      data:       { type: object, nullable: true, additionalProperties: true }
+      ip:         { type: string, nullable: true, maxLength: 45 }
+      created_at: { type: string, format: date-time }
+    required: [id, actor_id, action, entity, created_at]
+    additionalProperties: false
+
+  AuditLogList:
+    type: object
+    required: [data, total, limit, offset]
+    properties:
+      data:   { type: array, items: { $ref: '#/schemas/AuditLog' } }
+      total:  { type: integer }
+      limit:  { type: integer }
+      offset: { type: integer }
+    additionalProperties: false

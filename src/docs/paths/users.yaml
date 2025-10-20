@@ -1,0 +1,127 @@
+paths:
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Search by name/email
+        - in: query
+          name: role_id
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, disabled] }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 0, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/users_roles.yaml#/schemas/UserList' }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+
+    post:
+      tags: [Users]
+      summary: Create user
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/users_roles.yaml#/schemas/UserCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '../components/users_roles.yaml#/schemas/User' }
+        '400': { description: Bad Request, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '409': { description: Conflict, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/users_roles.yaml#/schemas/User' }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+
+    patch:
+      tags: [Users]
+      summary: Update user (name/email/role/status)
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/users_roles.yaml#/schemas/UserUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '../components/users_roles.yaml#/schemas/User' }
+        '400': { description: Bad Request, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+
+  /users/{id}/password:
+    patch:
+      tags: [Users]
+      summary: Update user password
+      description: Admin may change any user’s password. A user may change their own password.
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/users_roles.yaml#/schemas/UserPasswordUpdate' }
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: password_updated }
+                  user_id: { $ref: '../components/base.yaml#/schemas/ID' }
+        '400': { description: Bad Request, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }

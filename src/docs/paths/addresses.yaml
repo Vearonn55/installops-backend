@@ -1,0 +1,85 @@
+paths:
+  /addresses:
+    get:
+      tags: [Addresses]
+      summary: List addresses
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Free-text search (line/city/region/postal_code)
+        - in: query
+          name: city
+          schema: { type: string }
+        - in: query
+          name: region
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/addresses.yaml#/schemas/AddressList' }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+
+    post:
+      tags: [Addresses]
+      summary: Create address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/addresses.yaml#/schemas/AddressCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '../components/addresses.yaml#/schemas/Address' }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+
+  /addresses/{id}:
+    get:
+      tags: [Addresses]
+      summary: Get address by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/addresses.yaml#/schemas/Address' }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+
+    patch:
+      tags: [Addresses]
+      summary: Update address
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/addresses.yaml#/schemas/AddressUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '../components/addresses.yaml#/schemas/Address' }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '../components/base.yaml#/schemas/Error' } } } }

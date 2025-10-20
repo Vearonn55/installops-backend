@@ -5,19 +5,18 @@ schemas:
 
   Installation:
     type: object
-    required: [id, external_order_id, store_id, status, created_at, updated_at]
     properties:
-      id: { $ref: './base.yaml#/schemas/ID' }
-      external_order_id: { type: string, example: NETSIS-123456 }
-      store_id: { $ref: './base.yaml#/schemas/ID' }
-      scheduled_start: { type: string, format: date-time, nullable: true }
-      scheduled_end: { type: string, format: date-time, nullable: true }
-      status: { $ref: '#/schemas/InstallStatus' }
-      notes: { type: string, nullable: true }
-      created_by: { $ref: './base.yaml#/schemas/ID' }
-      updated_by: { $ref: './base.yaml#/schemas/ID' }
-      created_at: { type: string, format: date-time }
-      updated_at: { type: string, format: date-time }
+      id:                { $ref: './base.yaml#/schemas/ID' }
+      external_order_id: { type: string, maxLength: 64 }
+      store_id:          { $ref: './base.yaml#/schemas/ID' }
+      scheduled_start:   { type: string, format: date-time, nullable: true }
+      scheduled_end:     { type: string, format: date-time, nullable: true }
+      status:            { $ref: '#/schemas/InstallStatus' }
+      notes:             { type: string, nullable: true }
+      created_by:        { $ref: './base.yaml#/schemas/ID' }
+      updated_by:        { $ref: './base.yaml#/schemas/ID' }
+      created_at:        { type: string, format: date-time }
+      updated_at:        { type: string, format: date-time }
       items:
         type: array
         items: { $ref: '#/schemas/InstallationItem' }
@@ -29,61 +28,74 @@ schemas:
     type: object
     required: [external_order_id, store_id]
     properties:
-      external_order_id: { type: string }
-      store_id: { $ref: './base.yaml#/schemas/ID' }
-      scheduled_start: { type: string, format: date-time }
-      scheduled_end: { type: string, format: date-time }
-      status: { $ref: '#/schemas/InstallStatus' }
-      notes: { type: string }
+      external_order_id: { type: string, maxLength: 64 }
+      store_id:          { $ref: './base.yaml#/schemas/ID' }
+      scheduled_start:   { type: string, format: date-time, nullable: true }
+      scheduled_end:     { type: string, format: date-time, nullable: true }
+      status:            { $ref: '#/schemas/InstallStatus' }
+      notes:             { type: string, nullable: true }
 
   InstallationItem:
     type: object
-    required: [id, installation_id, external_product_id, quantity, created_at, updated_at]
     properties:
-      id: { $ref: './base.yaml#/schemas/ID' }
-      installation_id: { $ref: './base.yaml#/schemas/ID' }
-      external_product_id: { type: string, example: SKU-ABC-001 }
-      quantity: { type: integer, minimum: 1, default: 1 }
-      room_tag: { type: string, nullable: true }
+      id:                  { $ref: './base.yaml#/schemas/ID' }
+      installation_id:     { $ref: './base.yaml#/schemas/ID' }
+      external_product_id: { type: string, maxLength: 64 }
+      quantity:            { type: integer, minimum: 1, default: 1 }
+      room_tag:            { type: string, maxLength: 80, nullable: true }
       special_instructions: { type: string, nullable: true }
-      created_at: { type: string, format: date-time }
-      updated_at: { type: string, format: date-time }
+      created_at:          { type: string, format: date-time }
+      updated_at:          { type: string, format: date-time }
 
   InstallationItemCreate:
     type: object
     required: [external_product_id]
     properties:
-      external_product_id: { type: string }
-      quantity: { type: integer, minimum: 1, default: 1 }
-      room_tag: { type: string }
-      special_instructions: { type: string }
+      external_product_id: { type: string, maxLength: 64 }
+      quantity:            { type: integer, minimum: 1, default: 1 }
+      room_tag:            { type: string, maxLength: 80, nullable: true }
+      special_instructions: { type: string, nullable: true }
 
   CrewAssignment:
     type: object
-    required: [id, installation_id, crew_user_id, created_at, updated_at]
     properties:
-      id: { $ref: './base.yaml#/schemas/ID' }
+      id:              { $ref: './base.yaml#/schemas/ID' }
       installation_id: { $ref: './base.yaml#/schemas/ID' }
-      crew_user_id: { $ref: './base.yaml#/schemas/ID' }
-      role: { type: string, nullable: true }
-      accepted_at: { type: string, format: date-time, nullable: true }
-      declined_at: { type: string, format: date-time, nullable: true }
-      created_at: { type: string, format: date-time }
-      updated_at: { type: string, format: date-time }
+      crew_user_id:    { $ref: './base.yaml#/schemas/ID' }
+      role:            { type: string, maxLength: 48, nullable: true }
+      accepted_at:     { type: string, format: date-time, nullable: true }
+      declined_at:     { type: string, format: date-time, nullable: true }
+      created_at:      { type: string, format: date-time }
+      updated_at:      { type: string, format: date-time }
 
   CrewAssignmentCreate:
     type: object
     required: [crew_user_id]
     properties:
       crew_user_id: { $ref: './base.yaml#/schemas/ID' }
-      role: { type: string }
+      role:         { type: string, maxLength: 48, nullable: true }
 
   InstallationList:
     type: object
-    required: [data]
     properties:
       data:
         type: array
         items: { $ref: '#/schemas/Installation' }
-      limit: { type: integer }
-      offset: { type: integer }
+      limit:  { type: integer, minimum: 0, default: 20 }
+      offset: { type: integer, minimum: 0, default: 0 }
+
+  InstallationUpdate:
+    type: object
+    additionalProperties: false
+    properties:
+      scheduled_start:
+        type: string
+        format: date-time
+        nullable: true
+      scheduled_end:
+        type: string
+        format: date-time
+        nullable: true
+      notes:
+        type: string
+        nullable: true

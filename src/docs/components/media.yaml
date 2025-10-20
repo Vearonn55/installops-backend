@@ -1,0 +1,44 @@
+schemas:
+  MediaAsset:
+    type: object
+    properties:
+      id:              { $ref: './base.yaml#/schemas/ID' }
+      installation_id: { $ref: './base.yaml#/schemas/ID' }
+      url:             { type: string, format: uri, maxLength: 500 }
+      type:            { type: string, enum: [photo, signature] }
+      tags:
+        description: Arbitrary JSON (object or array)
+        oneOf:
+          - type: object
+            additionalProperties: true
+          - type: array
+            items: { type: string }
+      sha256:          { type: string, maxLength: 64, nullable: true }
+      metadata:        { type: object, nullable: true, additionalProperties: true }
+      created_by:      { $ref: './base.yaml#/schemas/ID' }
+      created_at:      { type: string, format: date-time }
+    required: [id, installation_id, url, type, created_at]
+
+  MediaAssetCreate:
+    type: object
+    required: [url, type]
+    properties:
+      url:      { type: string, format: uri, maxLength: 500 }
+      type:     { type: string, enum: [photo, signature] }
+      tags:
+        oneOf:
+          - type: object
+            additionalProperties: true
+          - type: array
+            items: { type: string }
+      sha256:   { type: string, maxLength: 64, nullable: true }
+      metadata: { type: object, nullable: true, additionalProperties: true }
+
+  MediaAssetList:
+    type: object
+    required: [data, total, limit, offset]
+    properties:
+      data:   { type: array, items: { $ref: '#/schemas/MediaAsset' } }
+      total:  { type: integer }
+      limit:  { type: integer }
+      offset: { type: integer }

@@ -7,47 +7,142 @@ servers:
   - url: /api/v1
 
 security:
-  - bearerAuth: []
+  - cookieAuth: []
 
 paths:
-  /auth/login: { $ref: './paths/auth.yaml#/paths/~1auth~1login' }
-  /auth/me:    { $ref: './paths/auth.yaml#/paths/~1auth~1me' }
+  # --- Auth
+  /auth/login:    { $ref: './paths/auth.yaml#/paths/~1auth~1login' }
+  /auth/me:       { $ref: './paths/auth.yaml#/paths/~1auth~1me' }
+  /auth/logout:   { $ref: './paths/auth.yaml#/paths/~1auth~1logout' }
+  /auth/register: { $ref: './paths/auth.yaml#/paths/~1auth~1register' }
 
-  /installations:                { $ref: './paths/installations.yaml#/paths/~1installations' }
-  /installations/{id}:           { $ref: './paths/installations.yaml#/paths/~1installations~1{id}' }
-  /installations/{id}/items:     { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1items' }
-  /installations/{id}/crew:      { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1crew' }
-  /installations/{id}/status:    { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1status' }
+  # --- Users
+  /users:                     { $ref: './paths/users.yaml#/paths/~1users' }
+  /users/{id}:                { $ref: './paths/users.yaml#/paths/~1users~1{id}' }
+  /users/{id}/password:       { $ref: './paths/users.yaml#/paths/~1users~1{id}~1password' }
+
+  # --- Roles
+  /roles:          { $ref: './paths/roles.yaml#/paths/~1roles' }
+  /roles/{id}:     { $ref: './paths/roles.yaml#/paths/~1roles~1{id}' }
+
+  # --- Stores
+  /stores:         { $ref: './paths/stores.yaml#/paths/~1stores' }
+  /stores/{id}:    { $ref: './paths/stores.yaml#/paths/~1stores~1{id}' }
+
+  # --- Addresses
+  /addresses:      { $ref: './paths/addresses.yaml#/paths/~1addresses' }
+  /addresses/{id}: { $ref: './paths/addresses.yaml#/paths/~1addresses~1{id}' }
+
+  # --- Installations (core + items/crew)
+  /installations:                     { $ref: './paths/installations.yaml#/paths/~1installations' }
+  /installations/{id}:                { $ref: './paths/installations.yaml#/paths/~1installations~1{id}' }
+  /installations/{id}/status:         { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1status' }
+  /installations/{id}/items:          { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1items' }
+  /installations/{id}/items/{itemId}: { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1items~1{itemId}' }
+  /installations/{id}/crew:           { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1crew' }
+  /installations/{id}/crew/{asgnId}:  { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1crew~1{asgnId}' }
+
+  # --- Media (installation-scoped + direct)
+  /installations/{id}/media: { $ref: './paths/media.yaml#/paths/~1installations~1{id}~1media' }
+  /media/{id}:               { $ref: './paths/media.yaml#/paths/~1media~1{id}' }
+
+  # --- Checklists
+  /checklist-templates:                  { $ref: './paths/checklists.yaml#/paths/~1checklist-templates' }
+  /checklist-templates/{id}:             { $ref: './paths/checklists.yaml#/paths/~1checklist-templates~1{id}' }
+  /checklist-templates/{id}/items:       { $ref: './paths/checklists.yaml#/paths/~1checklist-templates~1{id}~1items' }
+  /checklist-items/{itemId}:             { $ref: './paths/checklists.yaml#/paths/~1checklist-items~1{itemId}' }
+  /installations/{id}/checklist-responses: { $ref: './paths/checklists.yaml#/paths/~1installations~1{id}~1checklist-responses' }
+  /checklist-responses/{id}:             { $ref: './paths/checklists.yaml#/paths/~1checklist-responses~1{id}' }
+
+  # --- audit
+  /audit-logs:      { $ref: './paths/audit_logs.yaml#/paths/~1audit-logs' }
+  /audit-logs/{id}: { $ref: './paths/audit_logs.yaml#/paths/~1audit-logs~1{id}' }
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sid
 
   schemas:
     # base
-    ID:                { $ref: './components/base.yaml#/schemas/ID' }
-    Error:             { $ref: './components/base.yaml#/schemas/Error' }
+    ID:     { $ref: './components/base.yaml#/schemas/ID' }
+    Error:  { $ref: './components/base.yaml#/schemas/Error' }
 
     # auth
     AuthLoginRequest:  { $ref: './components/auth.yaml#/schemas/AuthLoginRequest' }
     AuthTokenResponse: { $ref: './components/auth.yaml#/schemas/AuthTokenResponse' }
     AuthMeResponse:    { $ref: './components/auth.yaml#/schemas/AuthMeResponse' }
 
-    # installations (crew stays here for now)
-    InstallStatus:            { $ref: './components/installations.yaml#/schemas/InstallStatus' }
-    Installation:             { $ref: './components/installations.yaml#/schemas/Installation' }
-    InstallationCreate:       { $ref: './components/installations.yaml#/schemas/InstallationCreate' }
-    InstallationItem:         { $ref: './components/installations.yaml#/schemas/InstallationItem' }
-    InstallationItemCreate:   { $ref: './components/installations.yaml#/schemas/InstallationItemCreate' }
-    InstallationList:         { $ref: './components/installations.yaml#/schemas/InstallationList' }
-    CrewAssignment:           { $ref: './components/installations.yaml#/schemas/CrewAssignment' }
-    CrewAssignmentCreate:     { $ref: './components/installations.yaml#/schemas/CrewAssignmentCreate' }
+    # users & roles
+    User:               { $ref: './components/users_roles.yaml#/schemas/User' }
+    UserList:           { $ref: './components/users_roles.yaml#/schemas/UserList' }
+    UserCreate:         { $ref: './components/users_roles.yaml#/schemas/UserCreate' }
+    UserUpdate:         { $ref: './components/users_roles.yaml#/schemas/UserUpdate' }
+    UserPasswordUpdate: { $ref: './components/users_roles.yaml#/schemas/UserPasswordUpdate' }
+    Role:               { $ref: './components/users_roles.yaml#/schemas/Role' }
+    RoleList:           { $ref: './components/users_roles.yaml#/schemas/RoleList' }
+    RoleCreate:         { $ref: './components/users_roles.yaml#/schemas/RoleCreate' }
+    RoleUpdate:         { $ref: './components/users_roles.yaml#/schemas/RoleUpdate' }
+
+    # stores
+    Store:       { $ref: './components/stores.yaml#/schemas/Store' }
+    StoreList:   { $ref: './components/stores.yaml#/schemas/StoreList' }
+    StoreCreate: { $ref: './components/stores.yaml#/schemas/StoreCreate' }
+    StoreUpdate: { $ref: './components/stores.yaml#/schemas/StoreUpdate' }
+
+    # addresses
+    Address:       { $ref: './components/addresses.yaml#/schemas/Address' }
+    AddressList:   { $ref: './components/addresses.yaml#/schemas/AddressList' }
+    AddressCreate: { $ref: './components/addresses.yaml#/schemas/AddressCreate' }
+    AddressUpdate: { $ref: './components/addresses.yaml#/schemas/AddressUpdate' }
+
+    # installations (incl. items & crew)
+    InstallStatus:          { $ref: './components/installations.yaml#/schemas/InstallStatus' }
+    Installation:           { $ref: './components/installations.yaml#/schemas/Installation' }
+    InstallationList:       { $ref: './components/installations.yaml#/schemas/InstallationList' }
+    InstallationCreate:     { $ref: './components/installations.yaml#/schemas/InstallationCreate' }
+    InstallationItem:       { $ref: './components/installations.yaml#/schemas/InstallationItem' }
+    InstallationItemCreate: { $ref: './components/installations.yaml#/schemas/InstallationItemCreate' }
+    CrewAssignment:         { $ref: './components/installations.yaml#/schemas/CrewAssignment' }
+    CrewAssignmentCreate:   { $ref: './components/installations.yaml#/schemas/CrewAssignmentCreate' }
+
+    # checklists
+    ChecklistTemplate:       { $ref: './components/checklists.yaml#/schemas/ChecklistTemplate' }
+    ChecklistTemplateCreate: { $ref: './components/checklists.yaml#/schemas/ChecklistTemplateCreate' }
+    ChecklistTemplateUpdate: { $ref: './components/checklists.yaml#/schemas/ChecklistTemplateUpdate' }
+    ChecklistItem:           { $ref: './components/checklists.yaml#/schemas/ChecklistItem' }
+    ChecklistItemCreate:     { $ref: './components/checklists.yaml#/schemas/ChecklistItemCreate' }
+    ChecklistItemUpdate:     { $ref: './components/checklists.yaml#/schemas/ChecklistItemUpdate' }
+    ChecklistResponse:       { $ref: './components/checklists.yaml#/schemas/ChecklistResponse' }
+    ChecklistTemplateList:   { $ref: './components/checklists.yaml#/schemas/ChecklistTemplateList' }
+
+    # media
+    MediaAsset:       { $ref: './components/media.yaml#/schemas/MediaAsset' }
+    MediaAssetCreate: { $ref: './components/media.yaml#/schemas/MediaAssetCreate' }
+    MediaAssetList:   { $ref: './components/media.yaml#/schemas/MediaAssetList' }
+
+    # audit
+    AuditLog:     { $ref: './components/audit_logs.yaml#/schemas/AuditLog' }
+    AuditLogList: { $ref: './components/audit_logs.yaml#/schemas/AuditLogList' }
 
 tags:
   - name: Auth
     description: Authentication & identity
+  - name: Users
+    description: User management
+  - name: Roles
+    description: Role & permissions
+  - name: Stores
+    description: Store directory
+  - name: Addresses
+    description: Address book
   - name: Installations
     description: Installation management
+  - name: Checklists
+    description: Checklist templates, items, and responses
+  - name: Media
+    description: Installation media (photos, videos, docs)
+  - name: Audit Logs
+    description: Read-only audit trail of actions

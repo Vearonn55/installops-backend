@@ -2,7 +2,6 @@ paths:
   /installations:
     get:
       summary: List installations
-      description: Returns all installations with optional filters and pagination.
       tags: [Installations]
       parameters:
         - in: query
@@ -26,7 +25,6 @@ paths:
           content:
             application/json:
               schema: { $ref: '../components/installations.yaml#/schemas/InstallationList' }
-
     post:
       summary: Create installation
       tags: [Installations]
@@ -67,10 +65,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }
-
-  /installations/{id}/items:
-    post:
-      summary: Add item to installation
+    patch:
+      summary: Update schedule / notes
       tags: [Installations]
       parameters:
         - in: path
@@ -81,41 +77,20 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '../components/installations.yaml#/schemas/InstallationItemCreate' }
+            schema: { $ref: '../components/installations.yaml#/schemas/InstallationUpdate' }
       responses:
-        '201':
-          description: Created
+        '200':
+          description: Updated
           content:
             application/json:
-              schema: { $ref: '../components/installations.yaml#/schemas/InstallationItem' }
-        '404':
-          description: Installation not found
+              schema: { $ref: '../components/installations.yaml#/schemas/Installation' }
+        '400':
+          description: Bad request
           content:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }
-
-  /installations/{id}/crew:
-    post:
-      summary: Assign crew to installation
-      tags: [Installations]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { $ref: '../components/base.yaml#/schemas/ID' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '../components/installations.yaml#/schemas/CrewAssignmentCreate' }
-      responses:
-        '201':
-          description: Crew assigned
-          content:
-            application/json:
-              schema: { $ref: '../components/installations.yaml#/schemas/CrewAssignment' }
         '404':
-          description: Installation not found
+          description: Not found
           content:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }
@@ -150,7 +125,289 @@ paths:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }
         '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /installations/{id}/items:
+    get:
+      summary: List items for installation
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '../components/installations.yaml#/schemas/InstallationItem' }
+                  total:  { type: integer }
+                  limit:  { type: integer }
+                  offset: { type: integer }
+        '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+    post:
+      summary: Add item to installation
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/installations.yaml#/schemas/InstallationItemCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '../components/installations.yaml#/schemas/InstallationItem' }
+        '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /installations/{id}/items/{itemId}:
+    patch:
+      summary: Update an installation item
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: path
+          name: itemId
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity: { type: integer, minimum: 1 }
+                room_tag: { type: string, maxLength: 80, nullable: true }
+                special_instructions: { type: string, nullable: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/installations.yaml#/schemas/InstallationItem' }
+        '404':
           description: Not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+    delete:
+      summary: Remove installation item
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: path
+          name: itemId
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /installations/{id}/crew:
+    get:
+      summary: List crew assignments
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '../components/installations.yaml#/schemas/CrewAssignment' }
+                  total:  { type: integer }
+                  limit:  { type: integer }
+                  offset: { type: integer }
+        '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+    post:
+      summary: Assign crew to installation
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/installations.yaml#/schemas/CrewAssignmentCreate' }
+      responses:
+        '201':
+          description: Crew assigned
+          content:
+            application/json:
+              schema: { $ref: '../components/installations.yaml#/schemas/CrewAssignment' }
+        '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /installations/{id}/crew/{asgnId}:
+    patch:
+      summary: Update a crew assignment (role / accept / decline)
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: path
+          name: asgnId
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:     { type: string, maxLength: 48, nullable: true }
+                accepted: { type: boolean }
+                declined: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/installations.yaml#/schemas/CrewAssignment' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+    delete:
+      summary: Remove crew assignment
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: path
+          name: asgnId
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /installations/{id}/media:
+    get:
+      summary: List media for installation
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: type
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/media.yaml#/schemas/MediaList' }
+        '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+    post:
+      summary: Upload media metadata for installation
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/media.yaml#/schemas/MediaCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '../components/media.yaml#/schemas/MediaAsset' }
+        '404':
+          description: Installation not found
           content:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }

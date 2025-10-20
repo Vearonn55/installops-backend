@@ -1,0 +1,66 @@
+paths:
+  /audit-logs:
+    get:
+      tags: [Audit Logs]
+      summary: List audit logs
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Text search (action, entity, ip)
+        - in: query
+          name: actor_id
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: entity
+          schema: { type: string }
+        - in: query
+          name: entity_id
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: action
+          schema: { type: string }
+        - in: query
+          name: date_from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: date_to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/audit_logs.yaml#/schemas/AuditLogList' }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /audit-logs/{id}:
+    get:
+      tags: [Audit Logs]
+      summary: Get audit log by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/audit_logs.yaml#/schemas/AuditLog' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }

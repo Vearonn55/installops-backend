@@ -1,0 +1,98 @@
+schemas:
+  User:
+    type: object
+    properties:
+      id:         { $ref: './base.yaml#/schemas/ID' }
+      name:       { type: string, maxLength: 120 }
+      email:      { type: string, format: email, maxLength: 160 }
+      phone:      { type: string, maxLength: 32, nullable: true }
+      role_id:    { $ref: './base.yaml#/schemas/ID' }
+      status:     { type: string, enum: [active, disabled], default: active }
+      created_at: { type: string, format: date-time }
+      updated_at: { type: string, format: date-time }
+      role:
+        type: object
+        nullable: true
+        properties:
+          id:   { $ref: './base.yaml#/schemas/ID' }
+          name: { type: string }
+          permissions:
+            type: array
+            items: { type: string }
+    required: [id, name, email, role_id, status, created_at, updated_at]
+
+  UserCreate:
+    type: object
+    properties:
+      name:     { type: string, maxLength: 120 }
+      email:    { type: string, format: email, maxLength: 160 }
+      password: { type: string, minLength: 8 }
+      role_id:  { $ref: './base.yaml#/schemas/ID' }
+      phone:    { type: string, maxLength: 32, nullable: true }
+    required: [name, email, password, role_id]
+
+  UserUpdate:
+    type: object
+    properties:
+      name:    { type: string, maxLength: 120 }
+      email:   { type: string, format: email, maxLength: 160 }
+      role_id: { $ref: './base.yaml#/schemas/ID' }
+      status:  { type: string, enum: [active, disabled] }
+      phone:   { type: string, maxLength: 32, nullable: true }
+    additionalProperties: false
+
+  UserPasswordUpdate:
+    type: object
+    properties:
+      new_password: { type: string, minLength: 8 }
+    required: [new_password]
+
+  UserList:
+    type: object
+    properties:
+      data:
+        type: array
+        items: { $ref: '#/schemas/User' }
+      limit:  { type: integer, minimum: 0, default: 20 }
+      offset: { type: integer, minimum: 0, default: 0 }
+    required: [data, limit, offset]
+
+  Role:
+    type: object
+    properties:
+      id:          { $ref: './base.yaml#/schemas/ID' }
+      name:        { type: string, maxLength: 48 }
+      permissions:
+        type: array
+        items: { type: string }
+      created_at:  { type: string, format: date-time }
+      updated_at:  { type: string, format: date-time }
+    required: [id, name, permissions, created_at, updated_at]
+
+  RoleCreate:
+    type: object
+    properties:
+      name:        { type: string, maxLength: 48 }
+      permissions:
+        type: array
+        items: { type: string }
+    required: [name, permissions]
+
+  RoleUpdate:
+    type: object
+    properties:
+      name:        { type: string, maxLength: 48 }
+      permissions:
+        type: array
+        items: { type: string }
+    additionalProperties: false
+
+  RoleList:
+    type: object
+    properties:
+      data:
+        type: array
+        items: { $ref: '#/schemas/Role' }
+      limit:  { type: integer, minimum: 0, default: 20 }
+      offset: { type: integer, minimum: 0, default: 0 }
+    required: [data, limit, offset]

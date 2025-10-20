@@ -1,0 +1,94 @@
+schemas:
+  ChecklistTemplate:
+    type: object
+    properties:
+      id:          { $ref: './base.yaml#/schemas/ID' }
+      name:        { type: string }
+      version:     { type: string, nullable: true }
+      description: { type: string, nullable: true }
+      rules:       { type: object, nullable: true, additionalProperties: true }
+      created_at:  { type: string, format: date-time }
+      updated_at:  { type: string, format: date-time }
+      items:
+        type: array
+        items: { $ref: '#/schemas/ChecklistItem' }
+
+  ChecklistTemplateCreate:
+    type: object
+    required: [name]
+    properties:
+      name:        { type: string, maxLength: 160 }
+      version:     { type: string, nullable: true }
+      description: { type: string, nullable: true }
+      rules:       { type: object, nullable: true, additionalProperties: true }
+
+  ChecklistTemplateUpdate:
+    type: object
+    properties:
+      name:        { type: string, maxLength: 160 }
+      version:     { type: string, nullable: true }
+      description: { type: string, nullable: true }
+      rules:       { type: object, nullable: true, additionalProperties: true }
+
+  ChecklistItem:
+    type: object
+    properties:
+      id:          { $ref: './base.yaml#/schemas/ID' }
+      template_id: { $ref: './base.yaml#/schemas/ID' }
+      key:         { type: string }
+      label:       { type: string }
+      type:        { type: string }
+      required:    { type: boolean }
+      order_index: { type: integer }
+      rules:       { type: object, nullable: true, additionalProperties: true }
+      help_text:   { type: string, nullable: true }
+      options:     { type: object, nullable: true, additionalProperties: true }
+      created_at:  { type: string, format: date-time }
+      updated_at:  { type: string, format: date-time }
+
+  ChecklistItemCreate:
+    type: object
+    required: [key, label]
+    properties:
+      key:         { type: string, maxLength: 120 }
+      label:       { type: string, maxLength: 240 }
+      type:        { type: string, default: text }
+      required:    { type: boolean, default: false }
+      order_index: { type: integer, default: 0 }
+      rules:       { type: object, nullable: true, additionalProperties: true }
+      help_text:   { type: string, nullable: true }
+      options:     { type: object, nullable: true, additionalProperties: true }
+
+  ChecklistItemUpdate:
+    type: object
+    properties:
+      key:         { type: string, maxLength: 120 }
+      label:       { type: string, maxLength: 240 }
+      type:        { type: string }
+      required:    { type: boolean }
+      order_index: { type: integer }
+      rules:       { type: object, nullable: true, additionalProperties: true }
+      help_text:   { type: string, nullable: true }
+      options:     { type: object, nullable: true, additionalProperties: true }
+
+  ChecklistResponse:
+    type: object
+    properties:
+      id:              { $ref: './base.yaml#/schemas/ID' }
+      installation_id: { $ref: './base.yaml#/schemas/ID' }
+      item_id:         { $ref: './base.yaml#/schemas/ID' }
+      value:           { type: object, nullable: true, additionalProperties: true }
+      completed_at:    { type: string, format: date-time, nullable: true }
+      created_by:      { $ref: './base.yaml#/schemas/ID' }
+      created_at:      { type: string, format: date-time }
+      updated_at:      { type: string, format: date-time }
+
+  ChecklistTemplateList:
+    type: object
+    properties:
+      data:
+        type: array
+        items: { $ref: '#/schemas/ChecklistTemplate' }
+      total:  { type: integer }
+      limit:  { type: integer }
+      offset: { type: integer }

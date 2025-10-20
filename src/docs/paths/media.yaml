@@ -1,0 +1,71 @@
+# paths/media.yaml
+paths:
+  /installations/{id}/media:
+    get:
+      tags: [Media]
+      summary: List media for an installation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/media.yaml#/schemas/MediaAssetList' }
+        '404': { description: Installation not found }
+    post:
+      tags: [Media]
+      summary: Upload media metadata for an installation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../components/media.yaml#/schemas/MediaAssetCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '../components/media.yaml#/schemas/MediaAsset' }
+
+  /media/{id}:
+    get:
+      tags: [Media]
+      summary: Get media record
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/media.yaml#/schemas/MediaAsset' }
+        '404': { description: Not found }
+    delete:
+      tags: [Media]
+      summary: Delete media record
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Not found }

@@ -3,32 +3,37 @@ schemas:
     type: object
     required: [email, password]
     properties:
-      email:    { type: string, format: email }
-      password: { type: string, format: password }
+      email:
+        type: string
+        format: email
+        maxLength: 160
+        example: admin@example.com
+      password:
+        type: string
+        minLength: 8
+        example: ChangeMe!2025
 
+  # Session-based response (kept name for compatibility)
   AuthTokenResponse:
     type: object
-    required: [token_type, access_token, user]
     properties:
-      token_type:   { type: string, example: Bearer }
-      expires_in:   { oneOf: [ { type: string }, { type: integer } ], example: 12h }
-      access_token: { type: string }
+      message:
+        type: string
+        example: login_ok
       user:
         type: object
-        required: [id, email]
         properties:
-          id:    { $ref: './base.yaml#/schemas/ID' }
-          name:  { type: string }
-          email: { type: string, format: email }
-          role:  { type: string, nullable: true }
+          id:     { $ref: './base.yaml#/schemas/ID' }
+          name:   { type: string, example: Admin }
+          email:  { type: string, format: email, example: admin@example.com }
+          role:   { type: string, example: admin }
 
   AuthMeResponse:
     type: object
-    required: [id]
     properties:
       id:          { $ref: './base.yaml#/schemas/ID' }
       role_id:     { $ref: './base.yaml#/schemas/ID' }
-      role:        { type: string, nullable: true }
+      role:        { type: string, example: admin }
       permissions:
         type: array
         items: { type: string }

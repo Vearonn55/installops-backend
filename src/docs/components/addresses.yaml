@@ -1,0 +1,55 @@
+schemas:
+  Address:
+    type: object
+    properties:
+      id:           { $ref: './base.yaml#/schemas/ID' }
+      line1:        { type: string, maxLength: 160 }
+      line2:        { type: string, maxLength: 160, nullable: true }
+      city:         { type: string, maxLength: 120 }
+      region:       { type: string, maxLength: 120, description: "State/Province/Region" }
+      postal_code:  { type: string, maxLength: 32 }
+      country:      { type: string, maxLength: 2, description: "ISO-3166-1 alpha-2" }
+      lat:          { type: number, nullable: true }
+      lng:          { type: number, nullable: true }
+      created_at:   { type: string, format: date-time }
+      updated_at:   { type: string, format: date-time }
+    required: [id, line1, city, region, postal_code, country, created_at, updated_at]
+    additionalProperties: false
+
+  AddressCreate:
+    type: object
+    properties:
+      line1:        { type: string, maxLength: 160 }
+      line2:        { type: string, maxLength: 160, nullable: true }
+      city:         { type: string, maxLength: 120 }
+      region:       { type: string, maxLength: 120 }
+      postal_code:  { type: string, maxLength: 32 }
+      country:      { type: string, maxLength: 2 }
+      lat:          { type: number, nullable: true }
+      lng:          { type: number, nullable: true }
+    required: [line1, city, region, postal_code, country]
+    additionalProperties: false
+
+  AddressUpdate:
+    type: object
+    properties:
+      line1:        { type: string, maxLength: 160 }
+      line2:        { type: string, maxLength: 160, nullable: true }
+      city:         { type: string, maxLength: 120 }
+      region:       { type: string, maxLength: 120 }
+      postal_code:  { type: string, maxLength: 32 }
+      country:      { type: string, maxLength: 2 }
+      lat:          { type: number, nullable: true }
+      lng:          { type: number, nullable: true }
+    additionalProperties: false
+
+  AddressList:
+    type: object
+    properties:
+      data:
+        type: array
+        items: { $ref: '#/schemas/Address' }
+      limit:   { type: integer, minimum: 1 }
+      offset:  { type: integer, minimum: 0 }
+    required: [data, limit, offset]
+    additionalProperties: false

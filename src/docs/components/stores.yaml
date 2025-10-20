@@ -1,0 +1,45 @@
+schemas:
+  Store:
+    type: object
+    properties:
+      id:                 { $ref: './base.yaml#/schemas/ID' }
+      name:               { type: string, maxLength: 160 }
+      external_store_id:  { type: string, maxLength: 120, nullable: true }
+      address_id:         { $ref: './base.yaml#/schemas/ID' }
+      phone:              { type: string, maxLength: 32, nullable: true }
+      created_at:         { type: string, format: date-time }
+      updated_at:         { type: string, format: date-time }
+      address:
+        allOf: [ { $ref: './addresses.yaml#/schemas/Address' } ]
+    required: [id, name, address_id, created_at, updated_at]
+    additionalProperties: false
+
+  StoreCreate:
+    type: object
+    properties:
+      name:               { type: string, maxLength: 160 }
+      external_store_id:  { type: string, maxLength: 120, nullable: true }
+      address_id:         { $ref: './base.yaml#/schemas/ID' }
+      phone:              { type: string, maxLength: 32, nullable: true }
+    required: [name, address_id]
+    additionalProperties: false
+
+  StoreUpdate:
+    type: object
+    properties:
+      name:               { type: string, maxLength: 160 }
+      external_store_id:  { type: string, maxLength: 120, nullable: true }
+      address_id:         { $ref: './base.yaml#/schemas/ID' }
+      phone:              { type: string, maxLength: 32, nullable: true }
+    additionalProperties: false
+
+  StoreList:
+    type: object
+    properties:
+      data:
+        type: array
+        items: { $ref: '#/schemas/Store' }
+      limit:   { type: integer, minimum: 1 }
+      offset:  { type: integer, minimum: 0 }
+    required: [data, limit, offset]
+    additionalProperties: false
