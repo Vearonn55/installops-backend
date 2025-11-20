@@ -1,3 +1,4 @@
+// src/config/session.js
 import session from 'express-session';
 
 export function makeSessionMiddleware() {
@@ -6,18 +7,28 @@ export function makeSessionMiddleware() {
   }
 
   const twelveHoursMs = 12 * 60 * 60 * 1000;
+  const isProd = process.env.NODE_ENV === 'production';
 
   return session({
     name: 'sid',
-    secret: process.env.SESSION_SECRET,   // <-- REQUIRED
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     rolling: true,
     cookie: {
       httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true', // true in prod HTTPS
-      sameSite: process.env.COOKIE_SAMESITE || 'lax',
-      maxAge: twelveHoursMs
-    }
+
+      // In production we serve via HTTPS behind nginx,
+      // so secure cookies are correct there. In local dev
+      // (when you run the backend on localhost) this will be false.
+      secure: isProd,
+
+      // REQUIRED for your friend’s frontend:
+      // localhost:3000 -> kurulum.alplerltd.com is cross-site,
+      // so SameSite must be "none" or the cookie is blocked.
+      sameSite: 'none',
+
+      maxAge: twelveHoursMs,
+    },
   });
 }
