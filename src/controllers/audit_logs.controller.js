@@ -17,22 +17,25 @@ export async function list(req, res, next) {
       date_from,
       date_to,
       q,
-      limit = 20,
-      offset = 0,
+      limit,
+      offset,
     } = req.query;
+
+    const limitNum  = intSafe(limit, 20);
+    const offsetNum = intSafe(offset, 0);
 
     const where = {};
 
-    if (actor_id) where.actor_id = actor_id;
-    if (entity) where.entity = entity;
+    if (actor_id)  where.actor_id  = actor_id;
+    if (entity)    where.entity    = entity;
     if (entity_id) where.entity_id = entity_id;
-    if (action) where.action = action;
+    if (action)    where.action    = action;
 
     // date range
     if (date_from || date_to) {
       where.created_at = {};
       if (date_from) where.created_at[Op.gte] = new Date(date_from);
-      if (date_to) where.created_at[Op.lte] = new Date(date_to);
+      if (date_to)   where.created_at[Op.lte] = new Date(date_to);
     }
 
     // keyword search across relevant text columns
@@ -40,19 +43,26 @@ export async function list(req, res, next) {
       where[Op.or] = [
         { action: { [Op.iLike]: `%${q}%` } },
         { entity: { [Op.iLike]: `%${q}%` } },
-        { ip: { [Op.iLike]: `%${q}%` } },
+        { ip:     { [Op.iLike]: `%${q}%` } },
       ];
     }
 
-    const rows = await db.AuditLog.findAll({
-      where,
-      order: [['created_at', 'DESC']],
-      limit: intSafe(limit, 20),
-      offset: intSafe(offset, 0),
-    });
+    const [rows, total] = await Promise.all([
+      db.AuditLog.findAll({
+        where,
+        order: [['created_at', 'DESC']],
+        limit:  limitNum,
+        offset: offsetNum,
+      }),
+      db.AuditLog.count({ where }),
+    ]);
 
-    const total = await db.AuditLog.count({ where });
-    res.json({ data: rows, total, limit: intSafe(limit, 20), offset: intSafe(offset, 0) });
+    res.json({
+      data:   rows,
+      total,
+      limit:  limitNum,
+      offset: offsetNum,
+    });
   } catch (err) {
     next(err);
   }
@@ -61,7 +71,11 @@ export async function list(req, res, next) {
 export async function getById(req, res, next) {
   try {
     const row = await db.AuditLog.findByPk(req.params.id);
-    if (!row) return res.status(404).json({ error: 'not_found', message: 'Audit log not found' });
+    if (!row) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Audit log not found' });
+    }
     res.json(row);
   } catch (err) {
     next(err);

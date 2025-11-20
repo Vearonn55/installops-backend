@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
 import db from '../models/index.js';
+import { logAudit } from '../services/audit.service.js';
 
 const bad = (res, message, code = 400) => res.status(code).json({ error: 'bad_request', message });
 const toInt = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -65,7 +66,24 @@ export async function createUser(req, res, next) {
 
     const password_hash = await bcrypt.hash(password, 12);
     const user = await db.User.create({
-      name, email: e, password_hash, role_id: role.id, status: 'active'
+      name,
+      email: e,
+      password_hash,
+      role_id: role.id,
+      status: 'active'
+    });
+
+    // 🔍 Audit: user.create
+    await logAudit(req, {
+      action: 'user.create',
+      entity: 'user',
+      entityId: user.id,
+      data: {
+        name: user.name,
+        email: user.email,
+        role_id: user.role_id,
+        status: user.status,
+      },
     });
 
     res.status(201).json({
@@ -84,6 +102,14 @@ export async function updateUser(req, res, next) {
     const { name, email, role_id, status } = req.body || {};
     const user = await db.User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ error: 'not_found', message: 'User not found' });
+
+    // snapshot BEFORE for audit
+    const before = {
+      name: user.name,
+      email: user.email,
+      role_id: user.role_id,
+      status: user.status,
+    };
 
     if (email) {
       const e = normEmail(email);
@@ -104,10 +130,28 @@ export async function updateUser(req, res, next) {
     }
 
     await user.save();
+
     const fresh = await db.User.findByPk(user.id, {
       attributes: ['id','name','email','role_id','status','created_at','updated_at'],
       include: [{ model: db.Role, as: 'role', attributes: ['id','name'] }]
     });
+
+    // 🔍 Audit: user.update
+    await logAudit(req, {
+      action: 'user.update',
+      entity: 'user',
+      entityId: user.id,
+      data: {
+        before,
+        after: {
+          name: fresh.name,
+          email: fresh.email,
+          role_id: fresh.role_id,
+          status: fresh.status,
+        },
+      },
+    });
+
     res.json(fresh);
   } catch (e) { next(e); }
 }
@@ -118,7 +162,7 @@ export async function updatePassword(req, res, next) {
     const targetId = req.params.id;
     const meId = req.session?.user?.id;
 
-    // If updating someone else, require users:write
+    // If updating someone else, require users:write or admin:*
     const isSelf = meId && meId === targetId;
     if (!isSelf) {
       const perms = req.session?.user?.permissions || [];
@@ -144,6 +188,18 @@ export async function updatePassword(req, res, next) {
 
     user.password_hash = await bcrypt.hash(new_password, 12);
     await user.save();
+
+    // 🔍 Audit: user.password_change (no password in log)
+    await logAudit(req, {
+      action: 'user.password_change',
+      entity: 'user',
+      entityId: user.id,
+      data: {
+        target_id: targetId,
+        changed_by: meId || null,
+        self_change: !!isSelf,
+      },
+    });
 
     res.json({ message: 'password_updated', user_id: user.id });
   } catch (e) { next(e); }

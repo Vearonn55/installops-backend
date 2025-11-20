@@ -1,4 +1,5 @@
 import db from '../models/index.js';
+import { logAudit } from '../services/audit.service.js';
 
 const { Op } = db.Sequelize;
 const toInt = (v, d) => {
@@ -11,7 +12,7 @@ export async function list(req, res, next) {
     const limit  = toInt(req.query.limit, 20);
     const offset = toInt(req.query.offset, 0);
     const q      = (req.query.q || '').trim();
-    const extId  = (req.query.external_id || '').trim();
+    const extId  = (req.query.external_id || '').trim(); // note: query param name
 
     const where = {};
     if (q) where.name = { [Op.iLike]: `%${q}%` };
@@ -42,20 +43,38 @@ export async function getById(req, res, next) {
 export async function create(req, res, next) {
   try {
     const { name, address_id, timezone, external_store_id } = req.body || {};
-    if (!name) return res.status(400).json({ error: 'bad_request', message: 'name is required' });
+    if (!name) {
+      return res.status(400).json({ error: 'bad_request', message: 'name is required' });
+    }
 
     if (address_id) {
       const addr = await db.Address.findByPk(address_id);
-      if (!addr) return res.status(400).json({ error: 'bad_request', message: 'address_id invalid' });
+      if (!addr) {
+        return res.status(400).json({ error: 'bad_request', message: 'address_id invalid' });
+      }
     }
 
+    const now = new Date();
     const row = await db.Store.create({
       name,
       address_id: address_id || null,
       timezone: timezone || null,
       external_store_id: external_store_id || null,
-      created_at: new Date(),
-      updated_at: new Date(),
+      created_at: now,
+      updated_at: now,
+    });
+
+    // 🔍 Audit: store.create
+    await logAudit(req, {
+      action: 'store.create',
+      entity: 'store',
+      entityId: row.id,
+      data: {
+        name: row.name,
+        address_id: row.address_id,
+        timezone: row.timezone,
+        external_store_id: row.external_store_id,
+      },
     });
 
     res.status(201).json(row);
@@ -70,14 +89,26 @@ export async function create(req, res, next) {
 export async function update(req, res, next) {
   try {
     const row = await db.Store.findByPk(req.params.id);
-    if (!row) return res.status(404).json({ error: 'not_found', message: 'Store not found' });
+    if (!row) {
+      return res.status(404).json({ error: 'not_found', message: 'Store not found' });
+    }
 
     const { name, address_id, timezone, external_store_id } = req.body || {};
 
     if (address_id !== undefined && address_id !== null) {
       const addr = await db.Address.findByPk(address_id);
-      if (!addr) return res.status(400).json({ error: 'bad_request', message: 'address_id invalid' });
+      if (!addr) {
+        return res.status(400).json({ error: 'bad_request', message: 'address_id invalid' });
+      }
     }
+
+    // snapshot BEFORE for audit
+    const before = {
+      name: row.name,
+      address_id: row.address_id,
+      timezone: row.timezone,
+      external_store_id: row.external_store_id,
+    };
 
     if (name !== undefined) row.name = name;
     if (address_id !== undefined) row.address_id = address_id || null;
@@ -86,6 +117,23 @@ export async function update(req, res, next) {
 
     row.updated_at = new Date();
     await row.save();
+
+    // 🔍 Audit: store.update
+    await logAudit(req, {
+      action: 'store.update',
+      entity: 'store',
+      entityId: row.id,
+      data: {
+        before,
+        after: {
+          name: row.name,
+          address_id: row.address_id,
+          timezone: row.timezone,
+          external_store_id: row.external_store_id,
+        },
+      },
+    });
+
     res.json(row);
   } catch (e) {
     if (e?.name === 'SequelizeUniqueConstraintError') {

@@ -1,11 +1,13 @@
 import db from '../models/index.js';
+import { logAudit } from '../services/audit.service.js';
 
 // helpers
 const num = (v, d) => {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? n : d;
 };
-const bad = (res, msg, code = 400) => res.status(code).json({ error: 'bad_request', message: msg });
+const bad = (res, msg, code = 400) =>
+  res.status(code).json({ error: 'bad_request', message: msg });
 
 export async function list(req, res, next) {
   try {
@@ -24,9 +26,17 @@ export async function list(req, res, next) {
       offset,
       order: [['created_at', 'DESC']],
       include: [
-        { model: db.InstallationItem, as: 'items', attributes: ['id', 'external_product_id', 'quantity', 'room_tag'] },
-        { model: db.CrewAssignment, as: 'crew', attributes: ['id', 'crew_user_id', 'role', 'accepted_at'] }
-      ]
+        {
+          model: db.InstallationItem,
+          as: 'items',
+          attributes: ['id', 'external_product_id', 'quantity', 'room_tag'],
+        },
+        {
+          model: db.CrewAssignment,
+          as: 'crew',
+          attributes: ['id', 'crew_user_id', 'role', 'accepted_at'],
+        },
+      ],
     });
 
     res.json({ data: rows, limit, offset });
@@ -41,17 +51,27 @@ export async function getById(req, res, next) {
 
     const row = await db.Installation.findByPk(id, {
       include: [
-        { model: db.Store, as: 'store', attributes: ['id', 'name', 'external_store_id'] },
+        {
+          model: db.Store,
+          as: 'store',
+          attributes: ['id', 'name', 'external_store_id'],
+        },
         { model: db.InstallationItem, as: 'items' },
         {
           model: db.CrewAssignment,
           as: 'crew',
-          include: [{ model: db.User, as: 'crew', attributes: ['id', 'name', 'email'] }]
-        }
-      ]
+          include: [
+            { model: db.User, as: 'crew', attributes: ['id', 'name', 'email'] },
+          ],
+        },
+      ],
     });
 
-    if (!row) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!row) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
     res.json(row);
   } catch (e) {
     next(e);
@@ -60,8 +80,17 @@ export async function getById(req, res, next) {
 
 export async function create(req, res, next) {
   try {
-    const { external_order_id, store_id, scheduled_start, scheduled_end, status, notes } = req.body || {};
-    if (!external_order_id || !store_id) return bad(res, 'external_order_id and store_id are required');
+    const {
+      external_order_id,
+      store_id,
+      scheduled_start,
+      scheduled_end,
+      status,
+      notes,
+    } = req.body || {};
+    if (!external_order_id || !store_id) {
+      return bad(res, 'external_order_id and store_id are required');
+    }
 
     const actorId = req.session?.user?.id || null;
 
@@ -73,7 +102,23 @@ export async function create(req, res, next) {
       status: status || 'scheduled',
       notes: notes || null,
       created_by: actorId,
-      updated_by: actorId
+      updated_by: actorId,
+    });
+
+    // 🔍 Audit: installation.create
+    await logAudit(req, {
+      action: 'installation.create',
+      entity: 'installation',
+      entityId: row.id,
+      data: {
+        external_order_id: row.external_order_id,
+        store_id: row.store_id,
+        scheduled_start: row.scheduled_start,
+        scheduled_end: row.scheduled_end,
+        status: row.status,
+        notes: row.notes,
+        created_by: row.created_by,
+      },
     });
 
     res.status(201).json(row);
@@ -86,17 +131,38 @@ export async function addItem(req, res, next) {
   try {
     const { id } = req.params;
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
-    const { external_product_id, quantity, room_tag, special_instructions } = req.body || {};
-    if (!external_product_id) return bad(res, 'external_product_id is required');
+    const { external_product_id, quantity, room_tag, special_instructions } =
+      req.body || {};
+    if (!external_product_id) {
+      return bad(res, 'external_product_id is required');
+    }
 
     const item = await db.InstallationItem.create({
       installation_id: id,
       external_product_id,
       quantity: Number.isFinite(Number(quantity)) ? Number(quantity) : 1,
       room_tag: room_tag || null,
-      special_instructions: special_instructions || null
+      special_instructions: special_instructions || null,
+    });
+
+    // 🔍 Audit: installation_item.create
+    await logAudit(req, {
+      action: 'installation_item.create',
+      entity: 'installation_item',
+      entityId: item.id,
+      data: {
+        installation_id: id,
+        external_product_id: item.external_product_id,
+        quantity: item.quantity,
+        room_tag: item.room_tag,
+        special_instructions: item.special_instructions,
+      },
     });
 
     res.status(201).json(item);
@@ -109,7 +175,11 @@ export async function assignCrew(req, res, next) {
   try {
     const { id } = req.params;
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
     const { crew_user_id, role } = req.body || {};
     if (!crew_user_id) return bad(res, 'crew_user_id is required');
@@ -121,7 +191,20 @@ export async function assignCrew(req, res, next) {
       installation_id: id,
       crew_user_id,
       role: role || null,
-      accepted_at: new Date()
+      accepted_at: new Date(),
+    });
+
+    // 🔍 Audit: crew_assignment.create
+    await logAudit(req, {
+      action: 'crew_assignment.create',
+      entity: 'crew_assignment',
+      entityId: ca.id,
+      data: {
+        installation_id: id,
+        crew_user_id,
+        role: ca.role,
+        accepted_at: ca.accepted_at,
+      },
     });
 
     res.status(201).json(ca);
@@ -134,15 +217,40 @@ export async function updateStatus(req, res, next) {
   try {
     const { id } = req.params;
     const { status } = req.body || {};
-    const allowed = ['scheduled', 'in_progress', 'completed', 'failed', 'canceled'];
-    if (!allowed.includes(status)) return bad(res, `status must be one of: ${allowed.join(', ')}`);
+    const allowed = [
+      'scheduled',
+      'in_progress',
+      'completed',
+      'failed',
+      'canceled',
+    ];
+    if (!allowed.includes(status)) {
+      return bad(res, `status must be one of: ${allowed.join(', ')}`);
+    }
 
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
+
+    const before = inst.toJSON();
 
     inst.status = status;
     inst.updated_by = req.session?.user?.id || inst.updated_by || null;
     await inst.save();
+
+    // 🔍 Audit: installation.update_status
+    await logAudit(req, {
+      action: 'installation.update_status',
+      entity: 'installation',
+      entityId: inst.id,
+      data: {
+        before: { status: before.status },
+        after: { status: inst.status },
+      },
+    });
 
     res.json(inst);
   } catch (e) {
@@ -150,63 +258,124 @@ export async function updateStatus(req, res, next) {
   }
 }
 
-
 // ---------- INSTALLATION ITEMS ----------
 
 export async function listItems(req, res, next) {
   try {
     const { id } = req.params;
-    const limit  = num(req.query.limit, 20);
+    const limit = num(req.query.limit, 20);
     const offset = num(req.query.offset, 0);
 
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
     const { rows, count } = await db.InstallationItem.findAndCountAll({
       where: { installation_id: id },
       order: [['created_at', 'DESC']],
-      limit, offset,
+      limit,
+      offset,
     });
 
     res.json({ data: rows, total: count, limit, offset });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function updateItem(req, res, next) {
   try {
     const { id, itemId } = req.params;
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
-    const item = await db.InstallationItem.findOne({ where: { id: itemId, installation_id: id } });
-    if (!item) return res.status(404).json({ error: 'not_found', message: 'Item not found' });
+    const item = await db.InstallationItem.findOne({
+      where: { id: itemId, installation_id: id },
+    });
+    if (!item) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Item not found' });
+    }
+
+    const before = item.toJSON();
 
     const { quantity, room_tag, special_instructions } = req.body || {};
     if (quantity !== undefined) {
       const q = Number(quantity);
-      if (!Number.isFinite(q) || q < 1) return bad(res, 'quantity must be >= 1');
+      if (!Number.isFinite(q) || q < 1) {
+        return bad(res, 'quantity must be >= 1');
+      }
       item.quantity = q;
     }
     if (room_tag !== undefined) item.room_tag = room_tag || null;
-    if (special_instructions !== undefined) item.special_instructions = special_instructions || null;
+    if (special_instructions !== undefined) {
+      item.special_instructions = special_instructions || null;
+    }
 
     await item.save();
+
+    // 🔍 Audit: installation_item.update
+    await logAudit(req, {
+      action: 'installation_item.update',
+      entity: 'installation_item',
+      entityId: item.id,
+      data: {
+        before,
+        after: item.toJSON(),
+      },
+    });
+
     res.json(item);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function removeItem(req, res, next) {
   try {
     const { id, itemId } = req.params;
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
-    const item = await db.InstallationItem.findOne({ where: { id: itemId, installation_id: id } });
-    if (!item) return res.status(404).json({ error: 'not_found', message: 'Item not found' });
+    const item = await db.InstallationItem.findOne({
+      where: { id: itemId, installation_id: id },
+    });
+    if (!item) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Item not found' });
+    }
 
+    const snapshot = item.toJSON();
     await item.destroy();
+
+    // 🔍 Audit: installation_item.delete
+    await logAudit(req, {
+      action: 'installation_item.delete',
+      entity: 'installation_item',
+      entityId: itemId,
+      data: {
+        installation_id: id,
+        ...snapshot,
+      },
+    });
+
     res.status(204).send();
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 // ---------- CREW ASSIGNMENTS ----------
@@ -214,21 +383,30 @@ export async function removeItem(req, res, next) {
 export async function listCrew(req, res, next) {
   try {
     const { id } = req.params;
-    const limit  = num(req.query.limit, 20);
+    const limit = num(req.query.limit, 20);
     const offset = num(req.query.offset, 0);
 
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
     const { rows, count } = await db.CrewAssignment.findAndCountAll({
       where: { installation_id: id },
       order: [['created_at', 'DESC']],
-      limit, offset,
-      include: [{ model: db.User, as: 'crew', attributes: ['id','name','email'] }],
+      limit,
+      offset,
+      include: [
+        { model: db.User, as: 'crew', attributes: ['id', 'name', 'email'] },
+      ],
     });
 
     res.json({ data: rows, total: count, limit, offset });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function updateAssignment(req, res, next) {
@@ -237,10 +415,22 @@ export async function updateAssignment(req, res, next) {
     const { role, accepted, declined } = req.body || {};
 
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
-    const ca = await db.CrewAssignment.findOne({ where: { id: asgnId, installation_id: id } });
-    if (!ca) return res.status(404).json({ error: 'not_found', message: 'Assignment not found' });
+    const ca = await db.CrewAssignment.findOne({
+      where: { id: asgnId, installation_id: id },
+    });
+    if (!ca) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Assignment not found' });
+    }
+
+    const before = ca.toJSON();
 
     if (role !== undefined) ca.role = role || null;
 
@@ -255,8 +445,22 @@ export async function updateAssignment(req, res, next) {
     }
 
     await ca.save();
+
+    // 🔍 Audit: crew_assignment.update
+    await logAudit(req, {
+      action: 'crew_assignment.update',
+      entity: 'crew_assignment',
+      entityId: ca.id,
+      data: {
+        before,
+        after: ca.toJSON(),
+      },
+    });
+
     res.json(ca);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function removeAssignment(req, res, next) {
@@ -264,16 +468,40 @@ export async function removeAssignment(req, res, next) {
     const { id, asgnId } = req.params;
 
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
 
-    const ca = await db.CrewAssignment.findOne({ where: { id: asgnId, installation_id: id } });
-    if (!ca) return res.status(404).json({ error: 'not_found', message: 'Assignment not found' });
+    const ca = await db.CrewAssignment.findOne({
+      where: { id: asgnId, installation_id: id },
+    });
+    if (!ca) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Assignment not found' });
+    }
 
+    const snapshot = ca.toJSON();
     await ca.destroy();
-    res.status(204).send();
-  } catch (e) { next(e); }
-}
 
+    // 🔍 Audit: crew_assignment.delete
+    await logAudit(req, {
+      action: 'crew_assignment.delete',
+      entity: 'crew_assignment',
+      entityId: asgnId,
+      data: {
+        installation_id: id,
+        ...snapshot,
+      },
+    });
+
+    res.status(204).send();
+  } catch (e) {
+    next(e);
+  }
+}
 
 // PATCH /installations/:id  -- update scheduled_start / scheduled_end / notes
 export async function update(req, res, next) {
@@ -282,7 +510,13 @@ export async function update(req, res, next) {
     const { scheduled_start, scheduled_end, notes } = req.body ?? {};
 
     const inst = await db.Installation.findByPk(id);
-    if (!inst) return res.status(404).json({ error: 'not_found', message: 'Installation not found' });
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
+
+    const before = inst.toJSON();
 
     // Build partial update
     const updates = {};
@@ -294,7 +528,10 @@ export async function update(req, res, next) {
       } else {
         const d = new Date(scheduled_start);
         if (Number.isNaN(d.getTime())) {
-          return res.status(400).json({ error: 'bad_request', message: 'scheduled_start must be ISO date-time or null' });
+          return res.status(400).json({
+            error: 'bad_request',
+            message: 'scheduled_start must be ISO date-time or null',
+          });
         }
         updates.scheduled_start = d;
       }
@@ -307,22 +544,41 @@ export async function update(req, res, next) {
       } else {
         const d = new Date(scheduled_end);
         if (Number.isNaN(d.getTime())) {
-          return res.status(400).json({ error: 'bad_request', message: 'scheduled_end must be ISO date-time or null' });
+          return res.status(400).json({
+            error: 'bad_request',
+            message: 'scheduled_end must be ISO date-time or null',
+          });
         }
         updates.scheduled_end = d;
       }
     }
 
     // If both provided and non-null, enforce start <= end
-    const startVal = updates.hasOwnProperty('scheduled_start') ? updates.scheduled_start : inst.scheduled_start;
-    const endVal   = updates.hasOwnProperty('scheduled_end')   ? updates.scheduled_end   : inst.scheduled_end;
+    const startVal = Object.prototype.hasOwnProperty.call(
+      updates,
+      'scheduled_start',
+    )
+      ? updates.scheduled_start
+      : inst.scheduled_start;
+    const endVal = Object.prototype.hasOwnProperty.call(
+      updates,
+      'scheduled_end',
+    )
+      ? updates.scheduled_end
+      : inst.scheduled_end;
     if (startVal && endVal && startVal > endVal) {
-      return res.status(400).json({ error: 'bad_request', message: 'scheduled_start must be before or equal to scheduled_end' });
+      return res.status(400).json({
+        error: 'bad_request',
+        message: 'scheduled_start must be before or equal to scheduled_end',
+      });
     }
 
     if (notes !== undefined) {
       if (notes !== null && typeof notes !== 'string') {
-        return res.status(400).json({ error: 'bad_request', message: 'notes must be a string or null' });
+        return res.status(400).json({
+          error: 'bad_request',
+          message: 'notes must be a string or null',
+        });
       }
       updates.notes = notes;
     }
@@ -331,6 +587,27 @@ export async function update(req, res, next) {
     updates.updated_by = req.session?.user?.id || null;
 
     await inst.update(updates, { fields: Object.keys(updates) });
+
+    const after = inst.toJSON();
+
+    // 🔍 Audit: installation.update (schedule/notes)
+    await logAudit(req, {
+      action: 'installation.update',
+      entity: 'installation',
+      entityId: inst.id,
+      data: {
+        before: {
+          scheduled_start: before.scheduled_start,
+          scheduled_end: before.scheduled_end,
+          notes: before.notes,
+        },
+        after: {
+          scheduled_start: after.scheduled_start,
+          scheduled_end: after.scheduled_end,
+          notes: after.notes,
+        },
+      },
+    });
 
     // Return the updated record (flat; detail endpoint includes items/crew)
     res.json({
@@ -344,7 +621,7 @@ export async function update(req, res, next) {
       created_by: inst.created_by,
       updated_by: inst.updated_by,
       created_at: inst.created_at,
-      updated_at: inst.updated_at
+      updated_at: inst.updated_at,
     });
   } catch (e) {
     next(e);

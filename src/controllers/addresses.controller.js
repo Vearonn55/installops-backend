@@ -1,4 +1,5 @@
 import db from '../models/index.js';
+import { logAudit } from '../services/audit.service.js';
 const { Op } = db.Sequelize;
 
 const toInt = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -17,17 +18,29 @@ export async function list(req, res, next) {
     if (region)  where.region  = { [Op.iLike]: `%${region}%` };
     if (country) where.country = { [Op.iLike]: `%${country}%` };
 
-    const rows = await db.Address.findAll({ where, order: [['created_at', 'DESC']], limit, offset });
+    const rows = await db.Address.findAll({
+      where,
+      order: [['created_at', 'DESC']],
+      limit,
+      offset,
+    });
+
     res.json({ data: rows, limit, offset });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function getById(req, res, next) {
   try {
     const row = await db.Address.findByPk(req.params.id);
-    if (!row) return res.status(404).json({ error: 'not_found', message: 'Address not found' });
+    if (!row) {
+      return res.status(404).json({ error: 'not_found', message: 'Address not found' });
+    }
     res.json(row);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function create(req, res, next) {
@@ -49,18 +62,37 @@ export async function create(req, res, next) {
       created_at: new Date(),
       updated_at: new Date(),
     });
+
+    // AUDIT: address.create
+    await logAudit(req, {
+      action: 'address.create',
+      entity: 'address',
+      entityId: row.id,
+      data: { body: req.body },
+    });
+
     res.status(201).json(row);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function update(req, res, next) {
   try {
     const row = await db.Address.findByPk(req.params.id);
-    if (!row) return res.status(404).json({ error: 'not_found', message: 'Address not found' });
+    if (!row) {
+      return res.status(404).json({ error: 'not_found', message: 'Address not found' });
+    }
 
     const { line1, line2, city, region, postal_code, country, lat, lng } = req.body || {};
-    if (country !== undefined && country !== null && !is2(country)) return bad(res, 'country must be 2-letter ISO code');
-    if ((lat !== undefined && !isNum(lat)) || (lng !== undefined && !isNum(lng))) return bad(res, 'lat/lng must be numbers');
+    if (country !== undefined && country !== null && !is2(country)) {
+      return bad(res, 'country must be 2-letter ISO code');
+    }
+    if ((lat !== undefined && !isNum(lat)) || (lng !== undefined && !isNum(lng))) {
+      return bad(res, 'lat/lng must be numbers');
+    }
+
+    const before = row.toJSON();
 
     if (line1 !== undefined) row.line1 = line1;
     if (line2 !== undefined) row.line2 = line2 ?? null;
@@ -73,6 +105,19 @@ export async function update(req, res, next) {
 
     row.updated_at = new Date();
     await row.save();
+
+    const after = row.toJSON();
+
+    // AUDIT: address.update
+    await logAudit(req, {
+      action: 'address.update',
+      entity: 'address',
+      entityId: row.id,
+      data: { before, after },
+    });
+
     res.json(row);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }

@@ -1,12 +1,9 @@
 import bcrypt from 'bcrypt';
 import db from '../models/index.js';
-
+import { logAudit } from '../services/audit.service.js';
 
 const MIN_PW = 8;
 const pwOk = (s = '') => typeof s === 'string' && s.length >= MIN_PW;
-
-
-
 
 // SESSION-BASED AUTH (no JWT)
 
@@ -16,6 +13,7 @@ export async function login(req, res, next) {
     const password = req.body?.password || '';
 
     if (!email || !password) {
+      // optional to audit this, but let's keep it simple and not log
       return res
         .status(400)
         .json({ error: 'bad_request', message: 'Email and password required' });
@@ -27,6 +25,14 @@ export async function login(req, res, next) {
     });
 
     if (!user?.password_hash) {
+      // failed login (no such user or no password hash)
+      await logAudit(req, {
+        action: 'auth.login_failed',
+        entity: 'user',
+        entityId: null,
+        data: { email, reason: 'invalid_credentials' },
+      });
+
       return res
         .status(401)
         .json({ error: 'unauthorized', message: 'Invalid credentials' });
@@ -34,6 +40,14 @@ export async function login(req, res, next) {
 
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
+      // failed login (wrong password)
+      await logAudit(req, {
+        action: 'auth.login_failed',
+        entity: 'user',
+        entityId: user.id,
+        data: { email, reason: 'invalid_credentials' },
+      });
+
       return res
         .status(401)
         .json({ error: 'unauthorized', message: 'Invalid credentials' });
@@ -64,7 +78,14 @@ export async function login(req, res, next) {
         /* ignore */
       }
 
-      // ✅ move response *inside* callback, no "return" outside
+      // audit successful login (fire-and-forget)
+      logAudit(req, {
+        action: 'auth.login',
+        entity: 'user',
+        entityId: user.id,
+        data: { email: user.email },
+      }).catch(() => { /* ignore */ });
+
       res.status(200).json({
         message: 'login_ok',
         user: {
@@ -93,6 +114,16 @@ export async function me(req, res) {
 }
 
 export async function logout(req, res) {
+  // log before destroying the session so we still have actor_id
+  if (req.session?.user?.id) {
+    logAudit(req, {
+      action: 'auth.logout',
+      entity: 'user',
+      entityId: req.session.user.id,
+      data: null,
+    }).catch(() => { /* ignore */ });
+  }
+
   req.session.destroy((err) => {
     if (err) {
       console.error('Logout error:', err);
@@ -113,16 +144,33 @@ export async function register(req, res, next) {
     const password = req.body?.password || '';
 
     if (!email || !name || !password) {
-      return res.status(400).json({ error: 'bad_request', message: 'name, email, password are required' });
+      return res
+        .status(400)
+        .json({ error: 'bad_request', message: 'name, email, password are required' });
     }
     if (!pwOk(password)) {
-      return res.status(400).json({ error: 'bad_request', message: `password must be at least ${MIN_PW} chars` });
+      return res
+        .status(400)
+        .json({ error: 'bad_request', message: `password must be at least ${MIN_PW} chars` });
     }
 
     // allow only when there are no users yet
     const userCount = await db.User.count();
     if (userCount > 0) {
-      return res.status(403).json({ error: 'forbidden', message: 'registration disabled (use admin to create users)' });
+      // registration disabled after bootstrap
+      await logAudit(req, {
+        action: 'auth.register_forbidden',
+        entity: 'user',
+        entityId: null,
+        data: { email, reason: 'bootstrap_already_done' },
+      });
+
+      return res
+        .status(403)
+        .json({
+          error: 'forbidden',
+          message: 'registration disabled (use admin to create users)',
+        });
     }
 
     // ensure admin role exists (or create it)
@@ -138,7 +186,18 @@ export async function register(req, res, next) {
 
     // unique email check
     const exists = await db.User.findOne({ where: { email } });
-    if (exists) return res.status(409).json({ error: 'conflict', message: 'email already registered' });
+    if (exists) {
+      await logAudit(req, {
+        action: 'auth.register_conflict',
+        entity: 'user',
+        entityId: exists.id,
+        data: { email, reason: 'email_already_registered' },
+      });
+
+      return res
+        .status(409)
+        .json({ error: 'conflict', message: 'email already registered' });
+    }
 
     const password_hash = await bcrypt.hash(password, 12);
     const now = new Date();
@@ -156,12 +215,22 @@ export async function register(req, res, next) {
     // session fixation protection + auto-login
     req.session.regenerate((err) => {
       if (err) return next(err);
+
       req.session.user = {
         id: user.id,
         role_id: user.role_id,
         role: 'admin',
         permissions: ['admin:*']
       };
+
+      // audit bootstrap registration
+      logAudit(req, {
+        action: 'auth.register_bootstrap',
+        entity: 'user',
+        entityId: user.id,
+        data: { email: user.email, name: user.name },
+      }).catch(() => { /* ignore */ });
+
       res.status(201).json({
         message: 'register_ok',
         user: { id: user.id, name: user.name, email: user.email, role: 'admin' }
