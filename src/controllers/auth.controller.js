@@ -13,7 +13,6 @@ export async function login(req, res, next) {
     const password = req.body?.password || '';
 
     if (!email || !password) {
-      // optional to audit this, but let's keep it simple and not log
       return res
         .status(400)
         .json({ error: 'bad_request', message: 'Email and password required' });
@@ -25,7 +24,6 @@ export async function login(req, res, next) {
     });
 
     if (!user?.password_hash) {
-      // failed login (no such user or no password hash)
       await logAudit(req, {
         action: 'auth.login_failed',
         entity: 'user',
@@ -40,7 +38,6 @@ export async function login(req, res, next) {
 
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
-      // failed login (wrong password)
       await logAudit(req, {
         action: 'auth.login_failed',
         entity: 'user',
@@ -60,31 +57,46 @@ export async function login(req, res, next) {
         return next(err);
       }
 
+      // -------- PERMISSIONS NORMALIZATION FIX --------
+      let perms = user.role?.permissions ?? [];
+
+      // If stored as JSON string in DB, parse it
+      if (typeof perms === 'string') {
+        try {
+          const parsed = JSON.parse(perms);
+          perms = Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+          perms = [];
+        }
+      }
+
+      // Ensure it's always a real JS array
+      if (!Array.isArray(perms)) {
+        perms = [];
+      }
+      // ------------------------------------------------
+
       // minimal identity in session
       req.session.user = {
         id: user.id,
         role_id: user.role_id,
         role: user.role?.name || null,
-        permissions: Array.isArray(user.role?.permissions)
-          ? user.role.permissions
-          : [],
+        permissions: perms,
       };
 
       // optional: update last login
       try {
         user.last_login_at = new Date();
         await user.save({ fields: ['last_login_at'] });
-      } catch (_) {
-        /* ignore */
-      }
+      } catch (_) {}
 
-      // audit successful login (fire-and-forget)
+      // audit successful login
       logAudit(req, {
         action: 'auth.login',
         entity: 'user',
         entityId: user.id,
         data: { email: user.email },
-      }).catch(() => { /* ignore */ });
+      }).catch(() => {});
 
       res.status(200).json({
         message: 'login_ok',
