@@ -59,30 +59,38 @@ app.use(
 );
 
 // ---- CORS (sessions need credentials when cross-origin) ----
-// If credentials=true, we cannot use wildcard "*". Use an allow-list instead.
+// RAW_ORIGINS should be something like:
+// ["https://kurulum.alplerltd.com", "http://localhost:5173"]
+
 const allowAll = RAW_ORIGINS.length === 1 && RAW_ORIGINS[0] === '*';
 const allowedSet = new Set(RAW_ORIGINS);
 
+// Build final list for logging/debugging
+console.log('CORS allow-list:', [...allowedSet]);
+console.log('CORS credentials enabled:', CORS_CREDENTIALS);
+
 const corsOptions = {
   credentials: CORS_CREDENTIALS,
+
   origin: (origin, cb) => {
-    // Same-origin / curl / server-to-server (no Origin header)
+    // 1) No origin → curl, Postman, server-to-server, same origin
     if (!origin) return cb(null, true);
 
-    if (CORS_CREDENTIALS) {
-      // With credentials, origin must be explicitly allowed
-      if (!allowAll && allowedSet.has(origin)) return cb(null, true);
-      return cb(new Error('CORS: origin not allowed with credentials'), false);
-    }
+    // 2) If wildcard allowed and no credentials → allow everything
+    if (allowAll && !CORS_CREDENTIALS) return cb(null, true);
 
-    // Without credentials, allow-list or wildcard
-    if (allowAll || allowedSet.has(origin)) return cb(null, true);
-    return cb(new Error('CORS: origin not allowed'), false);
+    // 3) Origin must match allow-list
+    if (allowedSet.has(origin)) return cb(null, true);
+
+    // 4) Denied
+    console.warn('CORS blocked:', origin);
+    return cb(new Error(`CORS blocked: ${origin}`), false);
   }
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
 
 // Sessions (MemoryStore or your configured store)
 app.use(makeSessionMiddleware());
