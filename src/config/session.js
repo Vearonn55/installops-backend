@@ -17,17 +17,10 @@ export function makeSessionMiddleware() {
     rolling: true,
     cookie: {
       httpOnly: true,
-
-      // In production we serve via HTTPS behind nginx,
-      // so secure cookies are correct there. In local dev
-      // (when you run the backend on localhost) this will be false.
+      // In prod we are behind nginx with HTTPS
       secure: isProd,
-
-      // REQUIRED for your friend’s frontend:
-      // localhost:3000 -> kurulum.alplerltd.com is cross-site,
-      // so SameSite must be "none" or the cookie is blocked.
+      // MUST be 'none' for localhost:3000 -> kurulum.alplerltd.com
       sameSite: 'none',
-
       maxAge: twelveHoursMs,
     },
   });

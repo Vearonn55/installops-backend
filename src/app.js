@@ -23,15 +23,16 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-const API_PREFIX        = process.env.API_PREFIX || '/api/v1';
-const ENABLE_HSTS       = process.env.ENABLE_HSTS === 'true';     // set true only when HTTPS is active
-const TRUST_PROXY       = process.env.TRUST_PROXY === 'true';     // set true if behind nginx/elb
-const RAW_ORIGINS       = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.trim()).filter(Boolean);
-const CORS_CREDENTIALS  = process.env.CORS_CREDENTIALS === 'true';
+const API_PREFIX       = process.env.API_PREFIX || '/api/v1';
+const ENABLE_HSTS      = process.env.ENABLE_HSTS === 'true';     // set true only when HTTPS is active
+const RAW_ORIGINS      = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.trim()).filter(Boolean);
+const CORS_CREDENTIALS = process.env.CORS_CREDENTIALS === 'true';
 
 // ---------------- Core & Security (order matters)
 app.disable('x-powered-by');
-if (TRUST_PROXY) app.set('trust proxy', 1); // needed for secure cookies behind proxy
+
+// We are always behind nginx on this server → needed for secure cookies
+app.set('trust proxy', 1);
 
 app.use(requestId);     // req.id for logs / tracing
 app.use(timeoutMw);     // per-req/res timeouts
@@ -60,7 +61,7 @@ app.use(
 
 // ---- CORS (sessions need credentials when cross-origin) ----
 // RAW_ORIGINS should be something like:
-// ["https://kurulum.alplerltd.com", "http://localhost:5173"]
+// ["https://kurulum.alplerltd.com", "http://localhost:5173", "http://localhost:3000"]
 
 const allowAll = RAW_ORIGINS.length === 1 && RAW_ORIGINS[0] === '*';
 const allowedSet = new Set(RAW_ORIGINS);
@@ -77,20 +78,23 @@ const corsOptions = {
     if (!origin) return cb(null, true);
 
     // 2) If wildcard allowed and no credentials → allow everything
-    if (allowAll && !CORS_CREDENTIALS) return cb(null, true);
+    if (allowAll && !CORS_CREDENTIALS) {
+      return cb(null, true);
+    }
 
     // 3) Origin must match allow-list
-    if (allowedSet.has(origin)) return cb(null, true);
+    if (allowedSet.has(origin)) {
+      return cb(null, true);
+    }
 
-    // 4) Denied
+    // 4) Denied (do NOT throw, just deny CORS)
     console.warn('CORS blocked:', origin);
-    return cb(new Error(`CORS blocked: ${origin}`), false);
+    return cb(null, false);
   }
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
-
 
 // Sessions (MemoryStore or your configured store)
 app.use(makeSessionMiddleware());
@@ -120,7 +124,7 @@ app.get('/docs-json', async (_req, res, next) => {
     if (!spec?.openapi) throw new Error('Bundled spec missing "openapi" field');
     res.json(spec);
   } catch (e) {
-    console.error('[OpenAPI bundle error]', e?.message || e); // <-- add this
+    console.error('[OpenAPI bundle error]', e?.message || e);
     next(e);
   }
 });
@@ -165,7 +169,9 @@ app.get('/', (_req, res) => {
 });
 
 // ---------------- 404 & Errors (must be last)
-app.use((req, res) => res.status(404).json({ error: 'not_found', path: req.originalUrl }));
+app.use((req, res) =>
+  res.status(404).json({ error: 'not_found', path: req.originalUrl })
+);
 app.use(errorHandler);
 
 export default app;
