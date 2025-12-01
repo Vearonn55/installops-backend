@@ -6,7 +6,7 @@ import { getOne, destroy } from '../controllers/media.controller.js';
 
 const router = Router();
 
-router.get('/:id',    requireAuth, authorize('installations:read'),  getOne);
-router.delete('/:id', requireAuth, authorize('installations:write'), destroy);
+router.get('/:id',    requireAuth, authorize('installations:read' , 'crew:*'),  getOne);
+router.delete('/:id', requireAuth, authorize('installations:write','crew:*'), destroy);
 
 export default router;

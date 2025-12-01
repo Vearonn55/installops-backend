@@ -6,8 +6,8 @@ import * as ctl from '../controllers/stores.controller.js';
 const router = Router();
 
 // Reads
-router.get('/',    requireAuth, authorize('stores:read'),  ctl.list);
-router.get('/:id', requireAuth, authorize('stores:read'),  ctl.getById);
+router.get('/',    requireAuth, authorize('stores:read','crew:*'),  ctl.list);
+router.get('/:id', requireAuth, authorize('stores:read','crew:*'),  ctl.getById);
 
 // Writes
 router.post('/',        requireAuth, authorize('stores:write'), ctl.create);
