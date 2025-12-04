@@ -6,7 +6,7 @@ export default (sequelize, DataTypes) => {
     scheduled_start: DataTypes.DATE,
     scheduled_end: DataTypes.DATE,
     status: {
-      type: DataTypes.ENUM('scheduled','in_progress','completed','failed','canceled'),
+      type: DataTypes.ENUM('scheduled','in_progress','completed','failed','canceled','staged'),
       allowNull: false,
       defaultValue: 'scheduled'
     },

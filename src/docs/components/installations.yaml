@@ -1,7 +1,7 @@
 schemas:
   InstallStatus:
     type: string
-    enum: [scheduled, in_progress, completed, failed, canceled]
+    enum: [scheduled, in_progress, completed, failed, canceled ,staged]
 
   Installation:
     type: object
