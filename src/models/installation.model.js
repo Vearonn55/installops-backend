@@ -42,7 +42,8 @@ export default (sequelize, DataTypes) => {
           "completed",
           "failed",
           "canceled",
-          "staged"
+          "staged",
+          "after_sale_service"
         ),
         allowNull: false,
         defaultValue: "scheduled",
