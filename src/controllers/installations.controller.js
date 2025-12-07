@@ -12,6 +12,17 @@ const bad = (res, msg, code = 400) =>
 // allowed difficulty values (keep in sync with model/OpenAPI)
 const ALLOWED_DIFFICULTIES = ['easy', 'intermediate', 'hard'];
 
+// allowed status values (keep in sync with DB enum + OpenAPI)
+const ALLOWED_STATUSES = [
+  'scheduled',
+  'in_progress',
+  'completed',
+  'failed',
+  'canceled',
+  'staged',
+  'after_sale_service',
+];
+
 // --- helper: incremental install codes ---
 async function getNextInstallCode() {
   // atomic sequence call — safe under concurrency
@@ -115,6 +126,12 @@ export async function create(req, res, next) {
       safeDifficulty = difficulty;
     }
 
+    // validate status, default to "scheduled"
+    let safeStatus = 'scheduled';
+    if (status && ALLOWED_STATUSES.includes(status)) {
+      safeStatus = status;
+    }
+
     // NEW: incremental install code
     const install_code = await getNextInstallCode();
 
@@ -123,7 +140,7 @@ export async function create(req, res, next) {
       store_id,
       scheduled_start: scheduled_start || null,
       scheduled_end: scheduled_end || null,
-      status: status || 'scheduled',
+      status: safeStatus,
       notes: notes || null,
       difficulty: safeDifficulty,
       install_code, // <-- NOT NULL + incremental
@@ -246,16 +263,9 @@ export async function updateStatus(req, res, next) {
   try {
     const { id } = req.params;
     const { status } = req.body || {};
-    const allowed = [
-      'scheduled',
-      'in_progress',
-      'completed',
-      'failed',
-      'canceled',
-      'staged',
-    ];
-    if (!allowed.includes(status)) {
-      return bad(res, `status must be one of: ${allowed.join(', ')}`);
+
+    if (!ALLOWED_STATUSES.includes(status)) {
+      return bad(res, `status must be one of: ${ALLOWED_STATUSES.join(', ')}`);
     }
 
     const inst = await db.Installation.findByPk(id);
