@@ -9,8 +9,18 @@ const num = (v, d) => {
 const bad = (res, msg, code = 400) =>
   res.status(code).json({ error: 'bad_request', message: msg });
 
-// difficulty whitelist
+// allowed difficulty values (keep in sync with model/OpenAPI)
 const ALLOWED_DIFFICULTIES = ['easy', 'intermediate', 'hard'];
+
+// --- helper: incremental install codes ---
+async function getNextInstallCode() {
+  // atomic sequence call — safe under concurrency
+  const [[{ nextval }]] = await db.sequelize.query(
+    "SELECT nextval('install_code_seq');"
+  );
+  const padded = String(nextval).padStart(5, '0'); // 00001, 00002, ...
+  return `INST-${padded}`;
+}
 
 export async function list(req, res, next) {
   try {
@@ -90,18 +100,23 @@ export async function create(req, res, next) {
       scheduled_end,
       status,
       notes,
-      difficulty, // <- NEW
+      difficulty,
     } = req.body || {};
+
     if (!external_order_id || !store_id) {
       return bad(res, 'external_order_id and store_id are required');
     }
 
     const actorId = req.session?.user?.id || null;
 
-    // validate / normalize difficulty
-    const safeDifficulty = ALLOWED_DIFFICULTIES.includes(difficulty)
-      ? difficulty
-      : 'intermediate';
+    // validate difficulty, default to "intermediate"
+    let safeDifficulty = 'intermediate';
+    if (difficulty && ALLOWED_DIFFICULTIES.includes(difficulty)) {
+      safeDifficulty = difficulty;
+    }
+
+    // NEW: incremental install code
+    const install_code = await getNextInstallCode();
 
     const row = await db.Installation.create({
       external_order_id,
@@ -110,7 +125,8 @@ export async function create(req, res, next) {
       scheduled_end: scheduled_end || null,
       status: status || 'scheduled',
       notes: notes || null,
-      difficulty: safeDifficulty, // <- NEW
+      difficulty: safeDifficulty,
+      install_code, // <-- NOT NULL + incremental
       created_by: actorId,
       updated_by: actorId,
     });
@@ -127,8 +143,8 @@ export async function create(req, res, next) {
         scheduled_end: row.scheduled_end,
         status: row.status,
         notes: row.notes,
-        difficulty: row.difficulty,          // <- NEW
-        installation_code: row.installation_code || null, // <- NEW (if hook sets it)
+        difficulty: row.difficulty,
+        install_code: row.install_code,
         created_by: row.created_by,
       },
     });
@@ -236,7 +252,7 @@ export async function updateStatus(req, res, next) {
       'completed',
       'failed',
       'canceled',
-      'staged', // <- NEW: keep in sync with enum
+      'staged',
     ];
     if (!allowed.includes(status)) {
       return bad(res, `status must be one of: ${allowed.join(', ')}`);
@@ -597,7 +613,6 @@ export async function update(req, res, next) {
       updates.notes = notes;
     }
 
-    // audit field if you keep it
     updates.updated_by = req.session?.user?.id || null;
 
     await inst.update(updates, { fields: Object.keys(updates) });
@@ -623,7 +638,6 @@ export async function update(req, res, next) {
       },
     });
 
-    // Return the updated record (flat; detail endpoint includes items/crew)
     res.json({
       id: inst.id,
       external_order_id: inst.external_order_id,
