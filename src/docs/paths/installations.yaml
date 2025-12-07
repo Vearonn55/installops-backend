@@ -8,11 +8,17 @@ paths:
           name: external_order_id
           schema: { type: string }
         - in: query
+          name: install_code
+          schema: { type: string }
+        - in: query
           name: store_id
           schema: { $ref: '../components/base.yaml#/schemas/ID' }
         - in: query
           name: status
           schema: { $ref: '../components/installations.yaml#/schemas/InstallStatus' }
+        - in: query
+          name: difficulty
+          schema: { $ref: '../components/installations.yaml#/schemas/InstallDifficulty' }
         - in: query
           name: limit
           schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
@@ -66,7 +72,7 @@ paths:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }
     patch:
-      summary: Update schedule / notes
+      summary: Update schedule / notes / difficulty
       tags: [Installations]
       parameters:
         - in: path
@@ -209,8 +215,8 @@ paths:
             schema:
               type: object
               properties:
-                quantity: { type: integer, minimum: 1 }
-                room_tag: { type: string, maxLength: 80, nullable: true }
+                quantity:             { type: integer, minimum: 1 }
+                room_tag:             { type: string, maxLength: 80, nullable: true }
                 special_instructions: { type: string, nullable: true }
       responses:
         '200':
@@ -358,56 +364,5 @@ paths:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }
 
-  /installations/{id}/media:
-    get:
-      summary: List media for installation
-      tags: [Installations]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { $ref: '../components/base.yaml#/schemas/ID' }
-        - in: query
-          name: type
-          schema: { type: string }
-        - in: query
-          name: limit
-          schema: { type: integer, minimum: 1, default: 20 }
-        - in: query
-          name: offset
-          schema: { type: integer, minimum: 0, default: 0 }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '../components/media.yaml#/schemas/MediaList' }
-        '404':
-          description: Installation not found
-          content:
-            application/json:
-              schema: { $ref: '../components/base.yaml#/schemas/Error' }
-    post:
-      summary: Upload media metadata for installation
-      tags: [Installations]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { $ref: '../components/base.yaml#/schemas/ID' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '../components/media.yaml#/schemas/MediaCreate' }
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema: { $ref: '../components/media.yaml#/schemas/MediaAsset' }
-        '404':
-          description: Installation not found
-          content:
-            application/json:
-              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+  # NOTE: /installations/{id}/media is defined in paths/media.yaml and wired via openapi.yaml.
+  # Keeping media-related path definitions there to avoid duplication.

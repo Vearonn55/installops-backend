@@ -1,22 +1,42 @@
 schemas:
   InstallStatus:
     type: string
-    enum: [scheduled, in_progress, completed, failed, canceled ,staged]
+    enum: [scheduled, in_progress, completed, failed, canceled, staged]
+
+  InstallDifficulty:
+    type: string
+    enum: [easy, intermediate, hard]
 
   Installation:
     type: object
     properties:
       id:                { $ref: './base.yaml#/schemas/ID' }
+      install_code:      { type: string, maxLength: 16 }
       external_order_id: { type: string, maxLength: 64 }
       store_id:          { $ref: './base.yaml#/schemas/ID' }
       scheduled_start:   { type: string, format: date-time, nullable: true }
       scheduled_end:     { type: string, format: date-time, nullable: true }
       status:            { $ref: '#/schemas/InstallStatus' }
+      difficulty:
+        allOf:
+          - { $ref: '#/schemas/InstallDifficulty' }
+        nullable: true
       notes:             { type: string, nullable: true }
       created_by:        { $ref: './base.yaml#/schemas/ID' }
       updated_by:        { $ref: './base.yaml#/schemas/ID' }
       created_at:        { type: string, format: date-time }
       updated_at:        { type: string, format: date-time }
+      checklist_result:
+        type: string
+        enum: [success, failed]
+        nullable: true
+      checklist_failure_reason:
+        type: string
+        nullable: true
+      checklist_completed_at:
+        type: string
+        format: date-time
+        nullable: true
       items:
         type: array
         items: { $ref: '#/schemas/InstallationItem' }
@@ -33,27 +53,31 @@ schemas:
       scheduled_start:   { type: string, format: date-time, nullable: true }
       scheduled_end:     { type: string, format: date-time, nullable: true }
       status:            { $ref: '#/schemas/InstallStatus' }
+      difficulty:
+        allOf:
+          - { $ref: '#/schemas/InstallDifficulty' }
+        nullable: true
       notes:             { type: string, nullable: true }
 
   InstallationItem:
     type: object
     properties:
-      id:                  { $ref: './base.yaml#/schemas/ID' }
-      installation_id:     { $ref: './base.yaml#/schemas/ID' }
-      external_product_id: { type: string, maxLength: 64 }
-      quantity:            { type: integer, minimum: 1, default: 1 }
-      room_tag:            { type: string, maxLength: 80, nullable: true }
+      id:                   { $ref: './base.yaml#/schemas/ID' }
+      installation_id:      { $ref: './base.yaml#/schemas/ID' }
+      external_product_id:  { type: string, maxLength: 64 }
+      quantity:             { type: integer, minimum: 1, default: 1 }
+      room_tag:             { type: string, maxLength: 80, nullable: true }
       special_instructions: { type: string, nullable: true }
-      created_at:          { type: string, format: date-time }
-      updated_at:          { type: string, format: date-time }
+      created_at:           { type: string, format: date-time }
+      updated_at:           { type: string, format: date-time }
 
   InstallationItemCreate:
     type: object
     required: [external_product_id]
     properties:
-      external_product_id: { type: string, maxLength: 64 }
-      quantity:            { type: integer, minimum: 1, default: 1 }
-      room_tag:            { type: string, maxLength: 80, nullable: true }
+      external_product_id:  { type: string, maxLength: 64 }
+      quantity:             { type: integer, minimum: 1, default: 1 }
+      room_tag:             { type: string, maxLength: 80, nullable: true }
       special_instructions: { type: string, nullable: true }
 
   CrewAssignment:
@@ -98,4 +122,8 @@ schemas:
         nullable: true
       notes:
         type: string
+        nullable: true
+      difficulty:
+        allOf:
+          - { $ref: '#/schemas/InstallDifficulty' }
         nullable: true

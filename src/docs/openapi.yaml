@@ -47,12 +47,12 @@ paths:
   /media/{id}:               { $ref: './paths/media.yaml#/paths/~1media~1{id}' }
 
   # --- Checklists
-  /checklist-templates:                  { $ref: './paths/checklists.yaml#/paths/~1checklist-templates' }
-  /checklist-templates/{id}:             { $ref: './paths/checklists.yaml#/paths/~1checklist-templates~1{id}' }
-  /checklist-templates/{id}/items:       { $ref: './paths/checklists.yaml#/paths/~1checklist-templates~1{id}~1items' }
-  /checklist-items/{itemId}:             { $ref: './paths/checklists.yaml#/paths/~1checklist-items~1{itemId}' }
+  /checklist-templates:                    { $ref: './paths/checklists.yaml#/paths/~1checklist-templates' }
+  /checklist-templates/{id}:               { $ref: './paths/checklists.yaml#/paths/~1checklist-templates~1{id}' }
+  /checklist-templates/{id}/items:         { $ref: './paths/checklists.yaml#/paths/~1checklist-templates~1{id}~1items' }
+  /checklist-items/{itemId}:               { $ref: './paths/checklists.yaml#/paths/~1checklist-items~1{itemId}' }
   /installations/{id}/checklist-responses: { $ref: './paths/checklists.yaml#/paths/~1installations~1{id}~1checklist-responses' }
-  /checklist-responses/{id}:             { $ref: './paths/checklists.yaml#/paths/~1checklist-responses~1{id}' }
+  /checklist-responses/{id}:               { $ref: './paths/checklists.yaml#/paths/~1checklist-responses~1{id}' }
 
   # --- audit
   /audit-logs:      { $ref: './paths/audit_logs.yaml#/paths/~1audit-logs' }
@@ -100,9 +100,11 @@ components:
 
     # installations (incl. items & crew)
     InstallStatus:          { $ref: './components/installations.yaml#/schemas/InstallStatus' }
+    InstallDifficulty:      { $ref: './components/installations.yaml#/schemas/InstallDifficulty' }
     Installation:           { $ref: './components/installations.yaml#/schemas/Installation' }
     InstallationList:       { $ref: './components/installations.yaml#/schemas/InstallationList' }
     InstallationCreate:     { $ref: './components/installations.yaml#/schemas/InstallationCreate' }
+    InstallationUpdate:     { $ref: './components/installations.yaml#/schemas/InstallationUpdate' }
     InstallationItem:       { $ref: './components/installations.yaml#/schemas/InstallationItem' }
     InstallationItemCreate: { $ref: './components/installations.yaml#/schemas/InstallationItemCreate' }
     CrewAssignment:         { $ref: './components/installations.yaml#/schemas/CrewAssignment' }
