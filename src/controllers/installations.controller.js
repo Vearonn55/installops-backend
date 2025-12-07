@@ -9,6 +9,9 @@ const num = (v, d) => {
 const bad = (res, msg, code = 400) =>
   res.status(code).json({ error: 'bad_request', message: msg });
 
+// difficulty whitelist
+const ALLOWED_DIFFICULTIES = ['easy', 'intermediate', 'hard'];
+
 export async function list(req, res, next) {
   try {
     const { external_order_id, store_id, status } = req.query;
@@ -87,12 +90,18 @@ export async function create(req, res, next) {
       scheduled_end,
       status,
       notes,
+      difficulty, // <- NEW
     } = req.body || {};
     if (!external_order_id || !store_id) {
       return bad(res, 'external_order_id and store_id are required');
     }
 
     const actorId = req.session?.user?.id || null;
+
+    // validate / normalize difficulty
+    const safeDifficulty = ALLOWED_DIFFICULTIES.includes(difficulty)
+      ? difficulty
+      : 'intermediate';
 
     const row = await db.Installation.create({
       external_order_id,
@@ -101,6 +110,7 @@ export async function create(req, res, next) {
       scheduled_end: scheduled_end || null,
       status: status || 'scheduled',
       notes: notes || null,
+      difficulty: safeDifficulty, // <- NEW
       created_by: actorId,
       updated_by: actorId,
     });
@@ -117,12 +127,15 @@ export async function create(req, res, next) {
         scheduled_end: row.scheduled_end,
         status: row.status,
         notes: row.notes,
+        difficulty: row.difficulty,          // <- NEW
+        installation_code: row.installation_code || null, // <- NEW (if hook sets it)
         created_by: row.created_by,
       },
     });
 
     res.status(201).json(row);
   } catch (e) {
+    console.error('installation.create error:', e);
     next(e);
   }
 }
@@ -223,6 +236,7 @@ export async function updateStatus(req, res, next) {
       'completed',
       'failed',
       'canceled',
+      'staged', // <- NEW: keep in sync with enum
     ];
     if (!allowed.includes(status)) {
       return bad(res, `status must be one of: ${allowed.join(', ')}`);
