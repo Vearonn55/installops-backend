@@ -1,0 +1,29 @@
+# InstallOps API – systemd unit
+# Copy to /etc/systemd/system/ and enable:
+#   sudo cp installops-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable installops-backend
+#   sudo systemctl start installops-backend
+#
+# Adjust WorkingDirectory and User if your install path or user differs.
+
+[Unit]
+Description=InstallOps Backend API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/installops-backend
+EnvironmentFile=/opt/installops-backend/.env
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+# Optional: run as a dedicated user (create with e.g. useradd --system installops)
+# User=installops
+# Group=installops
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=installops-backend
+
+[Install]
+WantedBy=multi-user.target

@@ -112,6 +112,7 @@ export async function create(req, res, next) {
       status,
       notes,
       difficulty,
+      location,
     } = req.body || {};
 
     if (!external_order_id || !store_id) {
@@ -143,6 +144,7 @@ export async function create(req, res, next) {
       status: safeStatus,
       notes: notes || null,
       difficulty: safeDifficulty,
+      location: location || null,
       install_code, // <-- NOT NULL + incremental
       created_by: actorId,
       updated_by: actorId,
@@ -161,6 +163,7 @@ export async function create(req, res, next) {
         status: row.status,
         notes: row.notes,
         difficulty: row.difficulty,
+        location: row.location,
         install_code: row.install_code,
         created_by: row.created_by,
       },
@@ -549,7 +552,7 @@ export async function removeAssignment(req, res, next) {
 export async function update(req, res, next) {
   try {
     const { id } = req.params;
-    const { scheduled_start, scheduled_end, notes } = req.body ?? {};
+    const { scheduled_start, scheduled_end, notes, location } = req.body ?? {};
 
     const inst = await db.Installation.findByPk(id);
     if (!inst) {
@@ -625,6 +628,16 @@ export async function update(req, res, next) {
       updates.notes = notes;
     }
 
+    if (location !== undefined) {
+      if (location !== null && typeof location !== 'string') {
+        return res.status(400).json({
+          error: 'bad_request',
+          message: 'location must be a string or null',
+        });
+      }
+      updates.location = location;
+    }
+
     updates.updated_by = req.session?.user?.id || null;
 
     await inst.update(updates, { fields: Object.keys(updates) });
@@ -641,11 +654,13 @@ export async function update(req, res, next) {
           scheduled_start: before.scheduled_start,
           scheduled_end: before.scheduled_end,
           notes: before.notes,
+          location: before.location,
         },
         after: {
           scheduled_start: after.scheduled_start,
           scheduled_end: after.scheduled_end,
           notes: after.notes,
+          location: after.location,
         },
       },
     });

@@ -29,6 +29,7 @@ schemas:
           - { $ref: '#/schemas/InstallDifficulty' }
         nullable: true
       notes:             { type: string, nullable: true }
+      location:          { type: string, maxLength: 255, nullable: true }
       created_by:        { $ref: './base.yaml#/schemas/ID' }
       updated_by:        { $ref: './base.yaml#/schemas/ID' }
       created_at:        { type: string, format: date-time }
@@ -65,6 +66,7 @@ schemas:
           - { $ref: '#/schemas/InstallDifficulty' }
         nullable: true
       notes:             { type: string, nullable: true }
+      location:          { type: string, maxLength: 255, nullable: true }
 
   InstallationItem:
     type: object
@@ -133,4 +135,8 @@ schemas:
       difficulty:
         allOf:
           - { $ref: '#/schemas/InstallDifficulty' }
+        nullable: true
+      location:
+        type: string
+        maxLength: 255
         nullable: true

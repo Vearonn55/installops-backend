@@ -123,6 +123,21 @@ All except auth require a session cookie. See `/docs` for full OpenAPI spec.
 
 See `BACKUP.md` for backup-related env.
 
+## Run as a systemd service (production)
+
+So the API starts on boot and restarts automatically if it crashes:
+
+```bash
+sudo cp installops-backend.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable installops-backend
+sudo systemctl start installops-backend
+```
+
+- **WorkingDirectory** in the unit file is `/opt/installops-backend`; change it if your app lives elsewhere.
+- **Restart=on-failure** restarts the process after a crash; the server will also start the service after a reboot.
+- Logs: `sudo journalctl -u installops-backend -f`
+
 ## Docker
 
 - **Dockerfile**: multi-stage; runs `node src/index.js`. Build context is this directory.
