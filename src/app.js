@@ -81,6 +81,9 @@ const allowedSet = new Set(RAW_ORIGINS);
 
 console.log('CORS allow-list:', [...allowedSet]);
 console.log('CORS credentials enabled:', CORS_CREDENTIALS);
+if (!CORS_CREDENTIALS) {
+  console.warn('[CORS] CORS_CREDENTIALS is false. Set CORS_CREDENTIALS=true in .env so session cookies work (required for login → /auth/me).');
+}
 
 const corsOptions = {
   credentials: CORS_CREDENTIALS,

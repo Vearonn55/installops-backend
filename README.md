@@ -118,8 +118,8 @@ All except auth and health require a session cookie. Full spec: `http://localhos
 | `DB_USER` | — | Database user (e.g. `installops` or `postgres`). |
 | `DB_PASS` | — | Database password. |
 | `SESSION_SECRET` | — | **Required.** Long random string for session signing (min 16 chars). |
-| `CORS_ORIGIN` | `*` | Allowed origins (comma-separated). |
-| `CORS_CREDENTIALS` | — | Set `true` if frontend sends cookies. |
+| `CORS_ORIGIN` | `*` | Allowed origins (comma-separated). With credentials, use your frontend origin (e.g. `https://kurulum.alplerltd.com`), not `*`. |
+| `CORS_CREDENTIALS` | — | **Required for session login.** Set `true` so the browser sends and stores the session cookie; otherwise login succeeds but `/auth/me` returns 401. |
 | `TRUST_PROXY` | `1` | Set to `true` or a number when behind nginx/load balancer so secure cookies and `req.secure` work. |
 | `ENABLE_BACKUP_SCHEDULER` | — | Set `true` to run daily/monthly/yearly backups in-process. |
 
