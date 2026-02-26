@@ -120,9 +120,12 @@ All except auth and health require a session cookie. Full spec: `http://localhos
 | `SESSION_SECRET` | — | **Required.** Long random string for session signing (min 16 chars). |
 | `CORS_ORIGIN` | `*` | Allowed origins (comma-separated). |
 | `CORS_CREDENTIALS` | — | Set `true` if frontend sends cookies. |
+| `TRUST_PROXY` | `1` | Set to `true` or a number when behind nginx/load balancer so secure cookies and `req.secure` work. |
 | `ENABLE_BACKUP_SCHEDULER` | — | Set `true` to run daily/monthly/yearly backups in-process. |
 
 See `BACKUP.md` for backup-related env.
+
+**Behind nginx:** The app trusts one proxy by default so session cookies work. If login succeeds but `GET /auth/me` returns 401, ensure nginx forwards `X-Forwarded-Proto` and `X-Forwarded-For` and that the frontend sends requests with `credentials: 'include'`. You can set `TRUST_PROXY=true` if you have multiple proxy hops.
 
 ## Run as a systemd service (production)
 

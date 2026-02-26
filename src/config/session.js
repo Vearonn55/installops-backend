@@ -17,10 +17,10 @@ export function makeSessionMiddleware() {
     rolling: true,
     cookie: {
       httpOnly: true,
-      // In prod we are behind nginx with HTTPS
+      // In prod we are behind nginx with HTTPS; trust proxy must be set in app.js
       secure: isProd,
-      // MUST be 'none' for localhost:3000 -> kurulum.alplerltd.com
-      sameSite: 'none',
+      sameSite: 'none', // required for cross-origin (e.g. SPA on different origin)
+      path: '/',        // send cookie for all paths on this host
       maxAge: twelveHoursMs,
     },
   });

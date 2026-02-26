@@ -34,8 +34,18 @@ const CORS_CREDENTIALS = process.env.CORS_CREDENTIALS === 'true';
 // ---------------- Core & Security (order matters)
 app.disable('x-powered-by');
 
-// Always behind nginx → required for secure cookies
-app.set('trust proxy', 1);
+// Trust first proxy (nginx). Required so req.secure and req.ip are correct;
+// otherwise secure cookies can be set incorrectly and /auth/me returns 401.
+// Set TRUST_PROXY=true to trust all proxies, or a number for hop count.
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy === 'true' || trustProxy === '1') {
+  app.set('trust proxy', true);
+} else if (trustProxy !== undefined && trustProxy !== '') {
+  const n = parseInt(trustProxy, 10);
+  if (!Number.isNaN(n)) app.set('trust proxy', n);
+} else {
+  app.set('trust proxy', 1);
+}
 
 app.use(requestId);
 app.use(timeoutMw);
