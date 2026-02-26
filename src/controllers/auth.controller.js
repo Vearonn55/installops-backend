@@ -98,14 +98,21 @@ export async function login(req, res, next) {
         data: { email: user.email },
       }).catch(() => {});
 
-      res.status(200).json({
-        message: 'login_ok',
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role?.name || null,
-        },
+      // Save session before sending response so Set-Cookie is committed (fixes cookie missing on next request)
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('Session save failed:', saveErr);
+          return next(saveErr);
+        }
+        res.status(200).json({
+          message: 'login_ok',
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role?.name || null,
+          },
+        });
       });
     });
   } catch (e) {

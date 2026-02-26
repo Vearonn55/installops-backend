@@ -17,10 +17,11 @@ export function makeSessionMiddleware() {
     rolling: true,
     cookie: {
       httpOnly: true,
-      // In prod we are behind nginx with HTTPS; trust proxy must be set in app.js
       secure: isProd,
-      sameSite: 'none', // required for cross-origin (e.g. SPA on different origin)
-      path: '/',        // send cookie for all paths on this host
+      // Production: same-origin (e.g. kurulum.alplerltd.com), use 'lax' so browsers accept the cookie.
+      // Development: cross-origin (e.g. localhost:3000 → API), use 'none'.
+      sameSite: isProd ? 'lax' : 'none',
+      path: '/',
       maxAge: twelveHoursMs,
     },
   });
