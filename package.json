@@ -9,7 +9,8 @@
     "start": "node src/index.js",
     "init": "node scripts/init.js",
     "backup:daily": "node scripts/run-backup.js daily",
-    "backup:weekly": "node scripts/run-backup.js weekly"
+    "backup:monthly": "node scripts/run-backup.js monthly",
+    "backup:yearly": "node scripts/run-backup.js yearly"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^14.2.1",

@@ -78,7 +78,7 @@ backend/                 # git root
 │   ├── docs/           # OpenAPI YAML
 │   ├── app.js
 │   └── index.js
-├── scripts/            # run-backup.js (daily/weekly)
+├── scripts/            # run-backup.js (daily/monthly/yearly)
 ├── BACKUP.md           # Backup strategy
 ├── Dockerfile
 ├── docker-compose.yml
@@ -119,7 +119,7 @@ All except auth require a session cookie. See `/docs` for full OpenAPI spec.
 | `SESSION_SECRET` | — | **Required.** Long random string for session signing |
 | `CORS_ORIGIN` | `*` | Allowed origins (comma-separated) |
 | `CORS_CREDENTIALS` | — | Set `true` if frontend sends cookies |
-| `ENABLE_BACKUP_SCHEDULER` | — | Set `true` to run daily/weekly backups in-process |
+| `ENABLE_BACKUP_SCHEDULER` | — | Set `true` to run daily/monthly/yearly backups in-process |
 
 See `BACKUP.md` for backup-related env.
 
@@ -162,15 +162,17 @@ Uncomment `env_file: .env` in `docker-compose.yml` if you use a `.env` file.
 | `npm run init` | Initialize DB (create DB, sync tables, seed roles, prompt for user and stores) |
 | `npm run dev` | Start with nodemon |
 | `npm start` | Start production server |
-| `npm run backup:daily` | Run daily backup (overwrites previous) |
-| `npm run backup:weekly` | Run weekly backup (retains last N) |
+| `npm run backup:daily` | Run daily backup (keep last 5 days) |
+| `npm run backup:monthly` | Run monthly backup |
+| `npm run backup:yearly` | Run yearly backup |
 
 ## Backups
 
-- **Daily**: overwrites one set (`backup-daily.dump`, `backup-daily-uploads.tar.gz`).
-- **Weekly**: dated files; keeps last N (default 4).
+- **Daily**: dated files; keeps last 5 days (`backup-daily-YYYY-MM-DD.dump`, `…-uploads.tar.gz`).
+- **Monthly**: one per month (`backup-monthly-YYYY-MM.dump`, …).
+- **Yearly**: one per year (`backup-yearly-YYYY.dump`, …).
 
-Run manually: `npm run backup:daily` or `npm run backup:weekly`.  
+Run manually: `npm run backup:daily`, `npm run backup:monthly`, or `npm run backup:yearly`.  
 Or set `ENABLE_BACKUP_SCHEDULER=true` for in-process schedule.  
 Full details: `BACKUP.md`.
 

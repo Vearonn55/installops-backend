@@ -2,7 +2,8 @@
 /**
  * CLI for backups. Use with system cron, e.g.:
  *   0 2 * * * cd /path/to/backend && node scripts/run-backup.js daily
- *   0 3 * * 0 cd /path/to/backend && node scripts/run-backup.js weekly
+ *   0 3 1 * * cd /path/to/backend && node scripts/run-backup.js monthly
+ *   0 4 1 1 * cd /path/to/backend && node scripts/run-backup.js yearly
  *
  * Requires: dotenv, pg_dump and tar on PATH.
  */
@@ -15,21 +16,18 @@ const root = path.resolve(__dirname, '..');
 dotenv.config({ path: path.join(root, '.env') });
 process.chdir(root);
 
-const { runDailyBackup, runWeeklyBackup } = await import('../src/services/backup.service.js');
+const { runDailyBackup, runMonthlyBackup, runYearlyBackup } = await import('../src/services/backup.service.js');
 
 const mode = process.argv[2] || 'daily';
-if (mode !== 'daily' && mode !== 'weekly') {
-  console.error('Usage: node scripts/run-backup.js [daily|weekly]');
+const runners = { daily: runDailyBackup, monthly: runMonthlyBackup, yearly: runYearlyBackup };
+if (!runners[mode]) {
+  console.error('Usage: node scripts/run-backup.js [daily|monthly|yearly]');
   process.exit(1);
 }
 
 (async () => {
   try {
-    if (mode === 'daily') {
-      await runDailyBackup();
-    } else {
-      await runWeeklyBackup();
-    }
+    await runners[mode]();
   } catch (e) {
     console.error(e);
     process.exit(1);

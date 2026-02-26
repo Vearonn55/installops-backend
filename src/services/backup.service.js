@@ -1,11 +1,11 @@
 /**
- * Backup service: daily (overwrite) + weekly (retained).
+ * Backup service: 5 prior days (daily), one per month, once per year.
  * Backs up: PostgreSQL DB (pg_dump) and uploads directory (tar.gz).
  *
  * Env:
  *   BACKUP_DIR          - where to write backups (default: ./backups)
  *   BACKUP_UPLOADS_PATH - path to uploads dir (default: ./src/uploads)
- *   BACKUP_WEEKLY_RETENTION - number of weekly backups to keep (default: 4)
+ *   BACKUP_DAILY_RETENTION - number of daily backups to keep (default: 5)
  *   DB_NAME, DB_USER, DB_HOST, DB_PORT, DB_PASS - for pg_dump (PGPASSWORD = DB_PASS)
  */
 
@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(process.cwd(), 'backups');
 const UPLOADS_PATH = process.env.BACKUP_UPLOADS_PATH || path.join(process.cwd(), 'src', 'uploads');
-const WEEKLY_RETENTION = Math.max(1, parseInt(process.env.BACKUP_WEEKLY_RETENTION || '4', 10));
+const DAILY_RETENTION = Math.max(1, parseInt(process.env.BACKUP_DAILY_RETENTION || '5', 10));
 
 const DB_NAME = process.env.DB_NAME || 'installops';
 const DB_USER = process.env.DB_USER || 'vearon';
@@ -80,13 +80,29 @@ async function backupUploads(outPath) {
   await runCommand('tar', ['-czf', path.join(dir, base), '-C', cwd, relativeUploads], {});
 }
 
+function pruneDaily(keep) {
+  const files = fs.readdirSync(BACKUP_DIR);
+  const dailyDb = files.filter((f) => f.startsWith('backup-daily-') && f.endsWith('.dump'));
+  dailyDb.sort().reverse();
+  for (let i = keep; i < dailyDb.length; i++) {
+    const f = path.join(BACKUP_DIR, dailyDb[i]);
+    fs.unlinkSync(f);
+    console.log('[backup] Pruned old daily:', dailyDb[i]);
+    const up = dailyDb[i].replace('.dump', '-uploads.tar.gz');
+    const upPath = path.join(BACKUP_DIR, up);
+    if (fs.existsSync(upPath)) fs.unlinkSync(upPath);
+  }
+}
+
 /**
- * Daily backup: overwrites previous daily files.
- * Files: backup-daily.sql (or .dump for custom format), backup-daily-uploads.tar.gz
+ * Daily backup: dated files, keep last BACKUP_DAILY_RETENTION (default 5).
+ * Files: backup-daily-YYYY-MM-DD.dump, backup-daily-YYYY-MM-DD-uploads.tar.gz
  */
 export async function runDailyBackup() {
   ensureBackupDir();
-  const stamp = 'daily';
+  const date = new Date();
+  const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
+  const stamp = `daily-${dateStr}`;
   const dbPath = path.join(BACKUP_DIR, `backup-${stamp}.dump`);
   const uploadsPath = path.join(BACKUP_DIR, `backup-${stamp}-uploads.tar.gz`);
 
@@ -107,61 +123,80 @@ export async function runDailyBackup() {
     throw e;
   }
 
+  pruneDaily(DAILY_RETENTION);
   console.log('[backup] Daily backup finished.');
   return { db: dbPath, uploads: uploadsPath };
 }
 
 /**
- * Weekly backup: creates dated files and prunes old weeklies beyond retention.
- * Files: backup-weekly-YYYY-MM-DD.dump, backup-weekly-YYYY-MM-DD-uploads.tar.gz
+ * Monthly backup: one per month. Files: backup-monthly-YYYY-MM.dump, backup-monthly-YYYY-MM-uploads.tar.gz
  */
-export async function runWeeklyBackup() {
+export async function runMonthlyBackup() {
   ensureBackupDir();
   const date = new Date();
-  const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
-  const stamp = `weekly-${dateStr}`;
+  const monthStr = date.toISOString().slice(0, 7); // YYYY-MM
+  const stamp = `monthly-${monthStr}`;
   const dbPath = path.join(BACKUP_DIR, `backup-${stamp}.dump`);
   const uploadsPath = path.join(BACKUP_DIR, `backup-${stamp}-uploads.tar.gz`);
 
-  console.log('[backup] Starting weekly backup...');
+  console.log('[backup] Starting monthly backup...');
   try {
     await backupDatabase(dbPath);
-    console.log('[backup] Weekly DB backup written:', dbPath);
+    console.log('[backup] Monthly DB backup written:', dbPath);
   } catch (e) {
-    console.error('[backup] Weekly DB backup failed:', e.message);
+    console.error('[backup] Monthly DB backup failed:', e.message);
     throw e;
   }
 
   try {
     await backupUploads(uploadsPath);
-    console.log('[backup] Weekly uploads backup written:', uploadsPath);
+    console.log('[backup] Monthly uploads backup written:', uploadsPath);
   } catch (e) {
-    console.error('[backup] Weekly uploads backup failed:', e.message);
+    console.error('[backup] Monthly uploads backup failed:', e.message);
     throw e;
   }
 
-  // Prune old weekly backups (keep last WEEKLY_RETENTION)
-  const files = fs.readdirSync(BACKUP_DIR);
-  const weeklyDb = files.filter((f) => f.startsWith('backup-weekly-') && f.endsWith('.dump'));
-  weeklyDb.sort().reverse();
-  for (let i = WEEKLY_RETENTION; i < weeklyDb.length; i++) {
-    const f = path.join(BACKUP_DIR, weeklyDb[i]);
-    fs.unlinkSync(f);
-    console.log('[backup] Pruned old weekly:', weeklyDb[i]);
-    const up = weeklyDb[i].replace('.dump', '-uploads.tar.gz');
-    const upPath = path.join(BACKUP_DIR, up);
-    if (fs.existsSync(upPath)) fs.unlinkSync(upPath);
+  console.log('[backup] Monthly backup finished.');
+  return { db: dbPath, uploads: uploadsPath };
+}
+
+/**
+ * Yearly backup: one per year. Files: backup-yearly-YYYY.dump, backup-yearly-YYYY-uploads.tar.gz
+ */
+export async function runYearlyBackup() {
+  ensureBackupDir();
+  const date = new Date();
+  const yearStr = date.getFullYear().toString(); // YYYY
+  const stamp = `yearly-${yearStr}`;
+  const dbPath = path.join(BACKUP_DIR, `backup-${stamp}.dump`);
+  const uploadsPath = path.join(BACKUP_DIR, `backup-${stamp}-uploads.tar.gz`);
+
+  console.log('[backup] Starting yearly backup...');
+  try {
+    await backupDatabase(dbPath);
+    console.log('[backup] Yearly DB backup written:', dbPath);
+  } catch (e) {
+    console.error('[backup] Yearly DB backup failed:', e.message);
+    throw e;
   }
 
-  console.log('[backup] Weekly backup finished.');
+  try {
+    await backupUploads(uploadsPath);
+    console.log('[backup] Yearly uploads backup written:', uploadsPath);
+  } catch (e) {
+    console.error('[backup] Yearly uploads backup failed:', e.message);
+    throw e;
+  }
+
+  console.log('[backup] Yearly backup finished.');
   return { db: dbPath, uploads: uploadsPath };
 }
 
 let cronInstalled = false;
 
 /**
- * Start in-process scheduler: daily at 02:00, weekly on Sunday at 03:00.
- * Set ENABLE_BACKUP_SCHEDULER=true to enable. Override with BACKUP_DAILY_CRON and BACKUP_WEEKLY_CRON.
+ * Start in-process scheduler: daily 02:00 (keep 5), monthly 1st at 03:00, yearly Jan 1 at 04:00.
+ * Set ENABLE_BACKUP_SCHEDULER=true to enable.
  */
 export async function startBackupScheduler() {
   if (cronInstalled) return;
@@ -174,8 +209,9 @@ export async function startBackupScheduler() {
   }
   cronInstalled = true;
 
-  const dailyCron = process.env.BACKUP_DAILY_CRON || '0 2 * * *';   // 02:00 every day
-  const weeklyCron = process.env.BACKUP_WEEKLY_CRON || '0 3 * * 0';  // 03:00 on Sunday
+  const dailyCron = process.env.BACKUP_DAILY_CRON || '0 2 * * *';     // 02:00 every day
+  const monthlyCron = process.env.BACKUP_MONTHLY_CRON || '0 3 1 * *'; // 03:00 on 1st of month
+  const yearlyCron = process.env.BACKUP_YEARLY_CRON || '0 4 1 1 *';  // 04:00 on Jan 1
 
   cron.schedule(dailyCron, async () => {
     try {
@@ -186,12 +222,21 @@ export async function startBackupScheduler() {
   });
   console.log('[backup] Daily backup scheduled:', dailyCron);
 
-  cron.schedule(weeklyCron, async () => {
+  cron.schedule(monthlyCron, async () => {
     try {
-      await runWeeklyBackup();
+      await runMonthlyBackup();
     } catch (e) {
-      console.error('[backup] Weekly scheduled backup error:', e);
+      console.error('[backup] Monthly scheduled backup error:', e);
     }
   });
-  console.log('[backup] Weekly backup scheduled:', weeklyCron);
+  console.log('[backup] Monthly backup scheduled:', monthlyCron);
+
+  cron.schedule(yearlyCron, async () => {
+    try {
+      await runYearlyBackup();
+    } catch (e) {
+      console.error('[backup] Yearly scheduled backup error:', e);
+    }
+  });
+  console.log('[backup] Yearly backup scheduled:', yearlyCron);
 }
