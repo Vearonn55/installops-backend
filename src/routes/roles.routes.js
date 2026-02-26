@@ -6,9 +6,9 @@ import authorize from '../middleware/authorize.js';
 const router = Router();
 
 // Roles
-router.get('/', requireAuth, authorize('roles:read','crew:*'), ctl.list);
-router.get('/:id', requireAuth, authorize('roles:read','crew:*'), ctl.getById);
-router.post('/', requireAuth, authorize('roles:write'), ctl.create);
-router.patch('/:id', requireAuth, authorize('roles:write'), ctl.update);
+router.get('/', requireAuth, authorize('roles:read','crew:*','manager:*'), ctl.list);
+router.get('/:id', requireAuth, authorize('roles:read','crew:*','manager:*'), ctl.getById);
+router.post('/', requireAuth, authorize('roles:write','manager:*'), ctl.create);
+router.patch('/:id', requireAuth, authorize('roles:write','manager:*'), ctl.update);
 
 export default router;

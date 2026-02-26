@@ -24,23 +24,30 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 const API_PREFIX       = process.env.API_PREFIX || '/api/v1';
-const ENABLE_HSTS      = process.env.ENABLE_HSTS === 'true';     // set true only when HTTPS is active
-const RAW_ORIGINS      = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.trim()).filter(Boolean);
+const ENABLE_HSTS      = process.env.ENABLE_HSTS === 'true';
+const RAW_ORIGINS      = (process.env.CORS_ORIGIN || '*')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 const CORS_CREDENTIALS = process.env.CORS_CREDENTIALS === 'true';
 
 // ---------------- Core & Security (order matters)
 app.disable('x-powered-by');
 
-// We are always behind nginx on this server → needed for secure cookies
+// Always behind nginx → required for secure cookies
 app.set('trust proxy', 1);
 
-app.use(requestId);     // req.id for logs / tracing
-app.use(timeoutMw);     // per-req/res timeouts
+app.use(requestId);
+app.use(timeoutMw);
 
-// Base Helmet. Keep CSP route-scoped; HSTS only when HTTPS is active.
-app.use(helmet({ hsts: ENABLE_HSTS, contentSecurityPolicy: false }));
+app.use(
+  helmet({
+    hsts: ENABLE_HSTS,
+    contentSecurityPolicy: false
+  })
+);
 
-// Strict global CSP (no auto-upgrade to https while developing over http)
+// Strict global CSP
 app.use(
   helmet.contentSecurityPolicy({
     useDefaults: true,
@@ -53,41 +60,31 @@ app.use(
       "object-src":  ["'none'"],
       "base-uri":    ["'self'"],
       "frame-ancestors": ["'self'"],
-      // IMPORTANT: don't force http→https upgrades during local http
       upgradeInsecureRequests: null
     }
   })
 );
 
-// ---- CORS (sessions need credentials when cross-origin) ----
-// RAW_ORIGINS should be something like:
-// ["https://kurulum.alplerltd.com", "http://localhost:5173", "http://localhost:3000"]
-
+// ---------------- CORS
 const allowAll = RAW_ORIGINS.length === 1 && RAW_ORIGINS[0] === '*';
 const allowedSet = new Set(RAW_ORIGINS);
 
-// Build final list for logging/debugging
 console.log('CORS allow-list:', [...allowedSet]);
 console.log('CORS credentials enabled:', CORS_CREDENTIALS);
 
 const corsOptions = {
   credentials: CORS_CREDENTIALS,
-
   origin: (origin, cb) => {
-    // 1) No origin → curl, Postman, server-to-server, same origin
     if (!origin) return cb(null, true);
 
-    // 2) If wildcard allowed and no credentials → allow everything
     if (allowAll && !CORS_CREDENTIALS) {
       return cb(null, true);
     }
 
-    // 3) Origin must match allow-list
     if (allowedSet.has(origin)) {
       return cb(null, true);
     }
 
-    // 4) Denied (do NOT throw, just deny CORS)
     console.warn('CORS blocked:', origin);
     return cb(null, false);
   }
@@ -96,28 +93,47 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Sessions (MemoryStore or your configured store)
+/**
+ * -------------------------------------------------
+ * Serve Uploaded Media (Public)
+ * -------------------------------------------------
+ * Physical path:
+ *   src/uploads/installations/{id}/file.ext
+ *
+ * Public URL:
+ *   /media/installations/{id}/file.ext
+ */
+app.use(
+  '/media',
+  express.static(path.join(__dirname, 'uploads'), {
+    maxAge: '7d',
+    etag: true,
+    index: false
+  })
+);
+
+// ---------------- Sessions
 app.use(makeSessionMiddleware());
 
-// Request logging with request id token
+// ---------------- Logging
 morgan.token('reqid', (req) => req.id);
 app.use(morgan(':method :url :status - reqid=:reqid :response-time ms'));
 
-// ---------------- Health (fast, dependency-free)
-app.get('/healthz', (_req, res) => res.status(200).type('text/plain').send('ok'));
+// ---------------- Health
+app.get(`${API_PREFIX}/healthz`, (_req, res) =>
+  res.status(200).type('text/plain').send('ok')
+);
 
-// ---------------- Swagger (YAML + $ref bundling → served as JSON)
+// ---------------- Swagger
 const openapiYamlPath = path.join(__dirname, 'docs', 'openapi.yaml');
 
 let cachedSpec = null;
 async function loadOpenApiSpec() {
   if (process.env.NODE_ENV !== 'development' && cachedSpec) return cachedSpec;
-  // Throws with detailed message on bad $ref; caught below by error middleware
   cachedSpec = await RefParser.bundle(openapiYamlPath);
   return cachedSpec;
 }
 
-// Serve the bundled spec at /docs-json
 app.get('/docs-json', async (_req, res, next) => {
   try {
     const spec = await loadOpenApiSpec();
@@ -129,7 +145,6 @@ app.get('/docs-json', async (_req, res, next) => {
   }
 });
 
-// Swagger UI with a relaxed, route-scoped CSP (inline bootstrap allowed)
 app.use(
   '/docs',
   helmet.contentSecurityPolicy({
@@ -150,15 +165,15 @@ app.use(
   swaggerUi.setup(undefined, {
     explorer: true,
     customSiteTitle: 'API Docs',
-    swaggerOptions: { url: '/docs-json' } // same-origin; works for http or https
+    swaggerOptions: { url: '/docs-json' }
   })
 );
 
-// ---------------- Versioned API (rate-limited)
+// ---------------- Versioned API
 console.log('[BOOT] API_PREFIX =', API_PREFIX);
 app.use(API_PREFIX, apiLimiter, routes);
 
-// ---------------- Root landing
+// ---------------- Root
 app.get('/', (_req, res) => {
   res.json({
     status: 'ok',
@@ -168,10 +183,11 @@ app.get('/', (_req, res) => {
   });
 });
 
-// ---------------- 404 & Errors (must be last)
+// ---------------- 404 & Errors
 app.use((req, res) =>
   res.status(404).json({ error: 'not_found', path: req.originalUrl })
 );
+
 app.use(errorHandler);
 
 export default app;

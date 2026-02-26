@@ -15,4 +15,9 @@ server.listen(PORT, async () => {
   } catch (err) {
     console.error('DB check failed:', err.message);
   }
+
+  if (process.env.ENABLE_BACKUP_SCHEDULER === 'true') {
+    const { startBackupScheduler } = await import('./services/backup.service.js');
+    startBackupScheduler();
+  }
 });

@@ -1,5 +1,44 @@
 # paths/media.yaml
 paths:
+  /media/installations/{id}/media/upload:
+    post:
+      tags: [Media]
+      summary: Upload file for an installation (multipart)
+      description: Upload a file; creates a media asset with computed sha256. Request must be multipart/form-data with field `file`.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                type:  { type: string, example: photo }
+                tags:  { type: object, nullable: true }
+                metadata: { type: object, nullable: true }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '../components/media.yaml#/schemas/MediaAsset' }
+        '400':
+          description: Bad request (file required)
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+        '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
   /installations/{id}/media:
     get:
       tags: [Media]

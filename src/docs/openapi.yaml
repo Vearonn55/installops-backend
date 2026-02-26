@@ -41,10 +41,12 @@ paths:
   /installations/{id}/items/{itemId}: { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1items~1{itemId}' }
   /installations/{id}/crew:           { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1crew' }
   /installations/{id}/crew/{asgnId}:  { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1crew~1{asgnId}' }
+  /installations/{id}/crew-after-notes: { $ref: './paths/installations.yaml#/paths/~1installations~1{id}~1crew-after-notes' }
 
   # --- Media (installation-scoped + direct)
   /installations/{id}/media: { $ref: './paths/media.yaml#/paths/~1installations~1{id}~1media' }
   /media/{id}:               { $ref: './paths/media.yaml#/paths/~1media~1{id}' }
+  /media/installations/{id}/media/upload: { $ref: './paths/media.yaml#/paths/~1media~1installations~1{id}~1media~1upload' }
 
   # --- Checklists
   /checklist-templates:                    { $ref: './paths/checklists.yaml#/paths/~1checklist-templates' }
@@ -53,6 +55,10 @@ paths:
   /checklist-items/{itemId}:               { $ref: './paths/checklists.yaml#/paths/~1checklist-items~1{itemId}' }
   /installations/{id}/checklist-responses: { $ref: './paths/checklists.yaml#/paths/~1installations~1{id}~1checklist-responses' }
   /checklist-responses/{id}:               { $ref: './paths/checklists.yaml#/paths/~1checklist-responses~1{id}' }
+
+  # --- Orders (order = external_order_id; installations + timeline)
+  /orders/{external_order_id}/installations: { $ref: './paths/orders.yaml#/paths/~1orders~1{external_order_id}~1installations' }
+  /orders/{external_order_id}/timeline:      { $ref: './paths/orders.yaml#/paths/~1orders~1{external_order_id}~1timeline' }
 
   # --- audit
   /audit-logs:      { $ref: './paths/audit_logs.yaml#/paths/~1audit-logs' }
@@ -146,5 +152,7 @@ tags:
     description: Checklist templates, items, and responses
   - name: Media
     description: Installation media (photos, videos, docs)
+  - name: Orders
+    description: Order-scoped data (installations list + chronological timeline)
   - name: Audit Logs
     description: Read-only audit trail of actions

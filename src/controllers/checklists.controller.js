@@ -354,6 +354,7 @@ export async function updateChecklistResponse(req, res, next) {
       entity: 'checklist_response',
       entityId: row.id,
       data: {
+        installation_id: row.installation_id,
         before,
         after: row.toJSON(),
       },

@@ -8,17 +8,11 @@ paths:
           name: external_order_id
           schema: { type: string }
         - in: query
-          name: install_code
-          schema: { type: string }
-        - in: query
           name: store_id
           schema: { $ref: '../components/base.yaml#/schemas/ID' }
         - in: query
           name: status
           schema: { $ref: '../components/installations.yaml#/schemas/InstallStatus' }
-        - in: query
-          name: difficulty
-          schema: { $ref: '../components/installations.yaml#/schemas/InstallDifficulty' }
         - in: query
           name: limit
           schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
@@ -360,6 +354,60 @@ paths:
           description: Deleted
         '404':
           description: Not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /installations/{id}/crew-after-notes:
+    patch:
+      summary: Set or update crew-after-installation notes
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [crew_after_installation_notes]
+              properties:
+                crew_after_installation_notes: { type: string, nullable: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '../components/installations.yaml#/schemas/Installation' }
+        '400':
+          description: Bad request (crew_after_installation_notes required)
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+        '404':
+          description: Installation not found
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+    delete:
+      summary: Clear crew-after-installation notes
+      tags: [Installations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { $ref: '../components/base.yaml#/schemas/ID' }
+      responses:
+        '200':
+          description: OK (notes cleared)
+          content:
+            application/json:
+              schema: { $ref: '../components/installations.yaml#/schemas/Installation' }
+        '404':
+          description: Installation not found
           content:
             application/json:
               schema: { $ref: '../components/base.yaml#/schemas/Error' }

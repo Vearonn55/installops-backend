@@ -1,0 +1,41 @@
+# Run from backend/ (git root)
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      API_PREFIX: /api/v1
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-installops}
+      DB_USER: ${DB_USER:-installops}
+      DB_PASS: ${DB_PASS:-installops}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production-min-16-chars}
+    # env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-installops}
+      POSTGRES_USER: ${DB_USER:-installops}
+      POSTGRES_PASSWORD: ${DB_PASS:-installops}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-installops} -d ${DB_NAME:-installops}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:

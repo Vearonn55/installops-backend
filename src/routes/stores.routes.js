@@ -6,11 +6,11 @@ import * as ctl from '../controllers/stores.controller.js';
 const router = Router();
 
 // Reads
-router.get('/',    requireAuth, authorize('stores:read','crew:*'),  ctl.list);
-router.get('/:id', requireAuth, authorize('stores:read','crew:*'),  ctl.getById);
+router.get('/',    requireAuth, authorize('stores:read','crew:*','manager:*'),  ctl.list);
+router.get('/:id', requireAuth, authorize('stores:read','crew:*','manager:*'),  ctl.getById);
 
 // Writes
-router.post('/',        requireAuth, authorize('stores:write'), ctl.create);
-router.patch('/:id',    requireAuth, authorize('stores:write'), ctl.update);
+router.post('/',        requireAuth, authorize('stores:write','manager:*'), ctl.create);
+router.patch('/:id',    requireAuth, authorize('stores:write','manager:*'), ctl.update);
 
 export default router;

@@ -1,0 +1,97 @@
+paths:
+  /orders/{external_order_id}/installations:
+    get:
+      tags: [Orders]
+      summary: List installations for an order
+      description: Returns all installations for the given order (external_order_id). Order = id used by external system; one order can have many installations.
+      parameters:
+        - in: path
+          name: external_order_id
+          required: true
+          schema: { type: string, maxLength: 64 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id: { type: string }
+                  data:
+                    type: array
+                    items: { $ref: '../components/installations.yaml#/schemas/Installation' }
+                  total: { type: integer }
+                  limit: { type: integer }
+                  offset: { type: integer }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }
+
+  /orders/{external_order_id}/timeline:
+    get:
+      tags: [Orders]
+      summary: Order timeline (chronological events)
+      description: Returns a chronological list of events for this order (all installations under this external_order_id). Events come from audit (installation create/update/status, items, crew, media, checklist responses).
+      parameters:
+        - in: path
+          name: external_order_id
+          required: true
+          schema: { type: string, maxLength: 64 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 500, default: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id: { type: string }
+                  installations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { $ref: '../components/base.yaml#/schemas/ID' }
+                        install_code: { type: string }
+                        status: { type: string }
+                        created_at: { type: string, format: date-time }
+                  timeline:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: integer, format: int64 }
+                            at: { type: string, format: date-time }
+                            action: { type: string }
+                            entity: { type: string }
+                            entity_id: { type: string, nullable: true }
+                            data: { type: object, nullable: true }
+                            actor_id: { type: string, nullable: true }
+                            installation_id: { type: string, nullable: true }
+                            install_code: { type: string, nullable: true }
+                      total: { type: integer }
+                      limit: { type: integer }
+                      offset: { type: integer }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '../components/base.yaml#/schemas/Error' }

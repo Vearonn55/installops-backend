@@ -6,10 +6,10 @@ import authorize from '../middleware/authorize.js';
 const router = Router();
 
 // Users
-router.get('/', requireAuth, authorize('users:read','crew:*'), ctl.list);
-router.get('/:id', requireAuth, authorize('users:read','crew:*'), ctl.getById);
-router.post('/', requireAuth, authorize('users:write'), ctl.createUser);
-router.patch('/:id', requireAuth, authorize('users:write'), ctl.updateUser);
+router.get('/', requireAuth, authorize('users:read','crew:*','manager:*'), ctl.list);
+router.get('/:id', requireAuth, authorize('users:read','crew:*','manager:*'), ctl.getById);
+router.post('/', requireAuth, authorize('users:write','manager:*'), ctl.createUser);
+router.patch('/:id', requireAuth, authorize('users:write','manager:*'), ctl.updateUser);
 
 // Password update:
 // - Self (id === session user): allowed without users:write

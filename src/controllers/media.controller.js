@@ -1,6 +1,9 @@
 // src/controllers/media.controller.js
 import db from '../models/index.js';
 import { logAudit } from '../services/audit.service.js';
+import fs from 'fs';
+import crypto from 'crypto';
+import path from 'path';
 
 function pick(obj, keys) {
   const out = {};
@@ -141,6 +144,68 @@ export async function destroy(req, res, next) {
     });
 
     res.status(204).send();
+  } catch (e) {
+    next(e);
+  }
+}
+
+
+// POST /installations/:id/media/upload
+export async function uploadForInstallation(req, res, next) {
+  try {
+    const installation_id = req.params.id;
+
+    const inst = await db.Installation.findByPk(installation_id);
+    if (!inst) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', message: 'Installation not found' });
+    }
+
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: 'bad_request', message: 'file is required' });
+    }
+
+    // calculate sha256
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const sha256 = crypto
+      .createHash('sha256')
+      .update(fileBuffer)
+      .digest('hex');
+
+    const relativeUrl = `/media/installations/${installation_id}/${req.file.filename}`;
+
+    const now = new Date();
+
+    const asset = await db.MediaAsset.create({
+      installation_id,
+      url: relativeUrl,
+      type: req.body?.type || 'photo',
+      tags: req.body?.tags || null,
+      sha256,
+      metadata: req.body?.metadata || null,
+      created_by: req.session?.user?.id || null,
+      created_at: now,
+      updated_at: now,
+    });
+
+    await logAudit(req, {
+      action: 'media.upload',
+      entity: 'media',
+      entityId: asset.id,
+      data: {
+        installation_id,
+        url: asset.url,
+        type: asset.type,
+        sha256,
+        created_by: asset.created_by,
+      },
+    });
+
+    res.status(201).json(asset);
+
   } catch (e) {
     next(e);
   }

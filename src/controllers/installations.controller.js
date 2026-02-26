@@ -368,6 +368,7 @@ export async function updateItem(req, res, next) {
       entity: 'installation_item',
       entityId: item.id,
       data: {
+        installation_id: id,
         before,
         after: item.toJSON(),
       },
@@ -492,6 +493,7 @@ export async function updateAssignment(req, res, next) {
       entity: 'crew_assignment',
       entityId: ca.id,
       data: {
+        installation_id: id,
         before,
         after: ca.toJSON(),
       },
@@ -661,6 +663,72 @@ export async function update(req, res, next) {
       created_at: inst.created_at,
       updated_at: inst.updated_at,
     });
+  } catch (e) {
+    next(e);
+  }
+}
+
+// PATCH /installations/:id/crew-after-notes
+export async function upsertCrewAfterNotes(req, res, next) {
+  try {
+    const installation = await db.Installation.findByPk(req.params.id);
+    if (!installation) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+
+    const { crew_after_installation_notes } = req.body;
+
+    if (crew_after_installation_notes === undefined) {
+      return res.status(400).json({
+        error: 'bad_request',
+        message: 'crew_after_installation_notes is required'
+      });
+    }
+
+    installation.crew_after_installation_notes = crew_after_installation_notes;
+    installation.updated_by = req.session?.user?.id || null;
+    installation.updated_at = new Date();
+
+    await installation.save();
+
+    await logAudit(req, {
+      action: 'installation.crew_after_notes.update',
+      entity: 'installation',
+      entityId: installation.id,
+      data: {
+        crew_after_installation_notes
+      }
+    });
+
+    res.json(installation);
+
+  } catch (e) {
+    next(e);
+  }
+}
+
+// DELETE /installations/:id/crew-after-notes
+export async function deleteCrewAfterNotes(req, res, next) {
+  try {
+    const installation = await db.Installation.findByPk(req.params.id);
+    if (!installation) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+
+    installation.crew_after_installation_notes = null;
+    installation.updated_by = req.session?.user?.id || null;
+    installation.updated_at = new Date();
+
+    await installation.save();
+
+    await logAudit(req, {
+      action: 'installation.crew_after_notes.delete',
+      entity: 'installation',
+      entityId: installation.id
+    });
+
+    res.status(204).send();
+
   } catch (e) {
     next(e);
   }

@@ -4,7 +4,7 @@ paths:
       tags: [Users]
       summary: List users
       security:
-        - sessionCookie: []
+        - cookieAuth: []
       parameters:
         - in: query
           name: q
@@ -18,7 +18,7 @@ paths:
           schema: { type: string, enum: [active, disabled] }
         - in: query
           name: limit
-          schema: { type: integer, minimum: 0, default: 20 }
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
         - in: query
           name: offset
           schema: { type: integer, minimum: 0, default: 0 }
@@ -34,7 +34,7 @@ paths:
       tags: [Users]
       summary: Create user
       security:
-        - sessionCookie: []
+        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -55,7 +55,7 @@ paths:
       tags: [Users]
       summary: Get user by ID
       security:
-        - sessionCookie: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -74,7 +74,7 @@ paths:
       tags: [Users]
       summary: Update user (name/email/role/status)
       security:
-        - sessionCookie: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
@@ -101,7 +101,7 @@ paths:
       summary: Update user password
       description: Admin may change any user’s password. A user may change their own password.
       security:
-        - sessionCookie: []
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
