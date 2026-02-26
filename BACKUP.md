@@ -16,7 +16,7 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BACKUP_DIR` | `./backups` | Directory where backup files are written. |
+| `BACKUP_DIR` | `./backups` | Directory where backup files are written (relative to process cwd, e.g. app directory or systemd `WorkingDirectory`). |
 | `BACKUP_UPLOADS_PATH` | `./src/uploads` | Path to the uploads directory to archive. |
 | `BACKUP_DAILY_RETENTION` | `5` | Number of daily backups to keep (older ones are deleted). |
 | `ENABLE_BACKUP_SCHEDULER` | — | Set to `true` to run daily/monthly/yearly schedules inside the app process. |
