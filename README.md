@@ -12,20 +12,39 @@ API for installation operations: orders, installations, stores, users, roles, ch
 
 ## Quick start
 
-### Local (no Docker)
+### First-time setup (single command)
 
-1. **PostgreSQL** running (e.g. `brew install postgresql`, create DB `installops`).
-2. **Env** – copy and edit:
+On a fresh server, with **PostgreSQL** installed and running:
 
-   ```bash
-   cp .env.example .env
-   # Set at least: DB_*, SESSION_SECRET (long random string)
-   ```
+```bash
+git clone <your-repo-url> backend && cd backend
+./setup.sh
+```
 
-3. **Install & run**:
+`setup.sh` will:
+
+1. Copy `.env.example` to `.env` if needed and prompt for **DB password** and **session secret** (min 16 chars).
+2. Run `npm install`.
+3. Create the database (if it doesn’t exist), sync tables, create the `install_code_seq` sequence, and seed **3 roles**: `admin`, `manager`, `crew`.
+4. Prompt for **one admin user**: name, email, password, and password confirm.
+5. Prompt for **up to 4 stores** (e.g. `girne-weltew`); leave blank to skip.
+
+Then start the app:
+
+```bash
+npm start
+```
+
+API: `http://localhost:8000`. Docs: `http://localhost:8000/docs`.
+
+### Local (no Docker) — already set up
+
+1. **PostgreSQL** running; database and user already created (or use `./setup.sh` once).
+2. **Env** – ensure `.env` has `DB_*` and `SESSION_SECRET`.
 
    ```bash
    npm install
+   npm run init   # only if DB/tables/roles/user not yet created
    npm run dev
    ```
 
@@ -139,6 +158,8 @@ Uncomment `env_file: .env` in `docker-compose.yml` if you use a `.env` file.
 
 | Command | Description |
 |---------|-------------|
+| `./setup.sh` | First-time setup: .env, install, init DB + roles + 1 user + up to 4 stores |
+| `npm run init` | Initialize DB (create DB, sync tables, seed roles, prompt for user and stores) |
 | `npm run dev` | Start with nodemon |
 | `npm start` | Start production server |
 | `npm run backup:daily` | Run daily backup (overwrites previous) |
