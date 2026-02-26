@@ -11,7 +11,8 @@ const registerLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'too_many_requests', message: 'Too many registration attempts' }
+  message: { error: 'too_many_requests', message: 'Too many registration attempts' },
+  validate: { trustProxy: false },
 });
 
 router.post('/register', registerLimiter, ctl.register);

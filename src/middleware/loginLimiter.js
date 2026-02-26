@@ -5,7 +5,8 @@ const loginLimiter = rateLimit({
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'too_many_requests', message: 'Too many login attempts, please try later.' }
+  message: { error: 'too_many_requests', message: 'Too many login attempts, please try later.' },
+  validate: { trustProxy: false },
 });
 
 export default loginLimiter;
