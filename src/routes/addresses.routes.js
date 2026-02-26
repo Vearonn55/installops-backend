@@ -5,12 +5,12 @@ import * as ctl from '../controllers/addresses.controller.js';
 
 const router = Router();
 
-// Reads
-router.get('/',    requireAuth, authorize('addresses:read'),  ctl.list);
-router.get('/:id', requireAuth, authorize('addresses:read'),  ctl.getById);
+// Reads (manager and crew can read addresses e.g. for stores/customers)
+router.get('/',    requireAuth, authorize('addresses:read', 'crew:*', 'manager:*'),  ctl.list);
+router.get('/:id', requireAuth, authorize('addresses:read', 'crew:*', 'manager:*'),  ctl.getById);
 
 // Writes
-router.post('/',     requireAuth, authorize('addresses:write'), ctl.create);
-router.patch('/:id', requireAuth, authorize('addresses:write'), ctl.update);
+router.post('/',     requireAuth, authorize('addresses:write', 'manager:*'), ctl.create);
+router.patch('/:id', requireAuth, authorize('addresses:write', 'manager:*'), ctl.update);
 
 export default router;

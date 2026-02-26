@@ -8,20 +8,19 @@ const router = Router();
 
 /**
  * Permission model:
- * - 'audit:read' may read audit logs
- * - 'admin:*' inherently passes authorize()
+ * - 'audit:read' or 'manager:*' or 'admin:*' may read audit logs
  */
 router.get(
   '/',
   requireAuth,
-  authorize('audit:read', 'admin:*'),
+  authorize('audit:read', 'admin:*', 'manager:*'),
   ctl.list
 );
 
 router.get(
   '/:id',
   requireAuth,
-  authorize('audit:read', 'admin:*'),
+  authorize('audit:read', 'admin:*', 'manager:*'),
   ctl.getById
 );
 
